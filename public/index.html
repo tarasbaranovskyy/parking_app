@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Parking Lot</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="zoom-controls">
+      <button onclick="zoomIn()">➕</button>
+      <button onclick="zoomOut()">➖</button>
+    </div>
+
+    <div id="canvas-container">
+      <div id="parking-canvas"></div>
+    </div>
+
+    <div id="info-widget" class="info-widget hidden">
+      <div class="widget-header">
+        <h3 id="widget-title">Add New Car</h3>
+        <button onclick="closeWidget()">×</button>
+      </div>
+      <div id="form-fields"></div>
+      <div class="widget-actions">
+        <button id="cancel-btn" class="hidden" onclick="cancelEdit()">
+          Cancel
+        </button>
+        <button id="save-btn" onclick="saveSpotData()">Save</button>
+      </div>
+    </div>
+
+    <aside id="right-toolbar" class="right-toolbar">
+      <div class="rt-section">
+        <h4>Search by VIN</h4>
+        <input id="vin-search" type="text" placeholder="Enter VIN" />
+      </div>
+
+      <div class="rt-section">
+        <h4>Highlight by Model</h4>
+        <select id="model-filter"></select>
+        <button id="clear-highlights-btn">Clear highlights</button>
+      </div>
+
+      <div class="rt-section">
+        <h4>Statistics</h4>
+        <div class="stat-line">
+          <span>Total</span><strong id="stat-total">0</strong>
+        </div>
+        <div class="stat-line">
+          <span>Occupied</span><strong id="stat-occupied">0</strong>
+        </div>
+        <div class="stat-line">
+          <span>Available</span><strong id="stat-available">0</strong>
+        </div>
+      </div>
+
+      <div class="rt-section">
+        <h4>Models</h4>
+        <div id="model-counts"></div>
+      </div>
+    </aside>
+
+    <script src="ParkingSpot.js"></script>
+  </body>
+</html>

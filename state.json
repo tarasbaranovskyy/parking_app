@@ -1,0 +1,647 @@
+{
+  "spots": {
+    "A1-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "A1-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "A1-3": {
+      "status": "available",
+      "vehicle": null
+    },
+    "A1-4": {
+      "status": "available",
+      "vehicle": null
+    },
+    "A1-5": {
+      "status": "available",
+      "vehicle": null
+    },
+    "A1-6": {
+      "status": "available",
+      "vehicle": null
+    },
+    "A1-7": {
+      "status": "available",
+      "vehicle": null
+    },
+    "A1-8": {
+      "status": "available",
+      "vehicle": null
+    },
+    "A1-9": {
+      "status": "available",
+      "vehicle": null
+    },
+    "A1-10": {
+      "status": "available",
+      "vehicle": null
+    },
+    "A2-1": {
+      "status": "occupied",
+      "vehicle": {
+        "model": "Chrysler",
+        "variant": "",
+        "year": "2025",
+        "color": "Black",
+        "tires": "Summer",
+        "vin": "",
+        "plate": ""
+      }
+    },
+    "A2-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "A2-3": {
+      "status": "available",
+      "vehicle": null
+    },
+    "A2-4": {
+      "status": "available",
+      "vehicle": null
+    },
+    "A2-5": {
+      "status": "available",
+      "vehicle": null
+    },
+    "A2-6": {
+      "status": "available",
+      "vehicle": null
+    },
+    "A2-7": {
+      "status": "available",
+      "vehicle": null
+    },
+    "A2-8": {
+      "status": "available",
+      "vehicle": null
+    },
+    "A2-9": {
+      "status": "available",
+      "vehicle": null
+    },
+    "A2-10": {
+      "status": "occupied",
+      "vehicle": {
+        "model": "Chevrolet",
+        "variant": "Silverado",
+        "year": "2025",
+        "color": "Black",
+        "tires": "Summer",
+        "vin": "",
+        "plate": ""
+      }
+    },
+    "B1-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B1-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B1-3": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B1-4": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B1-5": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B1-6": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B1-7": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B1-8": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B1-9": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B1-10": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B1-11": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B1-12": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B2-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B2-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B2-3": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B2-4": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B2-5": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B2-6": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B2-7": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B2-8": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B2-9": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B2-10": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B2-11": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B2-12": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B3V-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B3V-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B3V-3": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B3V-4": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B3V-5": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B3H-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "B3H-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C1-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C1-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C1-3": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C1-4": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C1-5": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C1-6": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C1-7": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C2-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C2-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C2-3": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C2-4": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C2-5": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C2-6": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C2-7": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C2-8": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C3-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C3-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C3-3": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C3-4": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C3-5": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C3-6": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C3-7": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C3-8": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C4-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C4-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C4-3": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C4-4": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C4-5": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C4-6": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C4-7": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C4-8": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C4-9": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C5-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C5-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C5-3": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C5-4": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C5-5": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C5-6": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C5-7": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C5-8": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C6-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C6-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C6-3": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C6-4": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C6-5": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C6-6": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C6-7": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C7V-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C7V-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C7V-3": {
+      "status": "available",
+      "vehicle": null
+    },
+    "C7H-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D1V-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D1V-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D1H-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D1H-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D1H-3": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D1H-4": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D2-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D2-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D2-3": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D2-4": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D2-5": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D2-6": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D2-7": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D2-8": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D3-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D3-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D3-3": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D3-4": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D3-5": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D3-6": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D3-7": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D3-8": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D4-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D4-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D4-3": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D4-4": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D4-5": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D4-6": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D4-7": {
+      "status": "available",
+      "vehicle": null
+    },
+    "D4-8": {
+      "status": "available",
+      "vehicle": null
+    },
+    "E1-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "E1-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "E1-3": {
+      "status": "available",
+      "vehicle": null
+    },
+    "E1-4": {
+      "status": "available",
+      "vehicle": null
+    },
+    "E1-5": {
+      "status": "available",
+      "vehicle": null
+    },
+    "E1-6": {
+      "status": "available",
+      "vehicle": null
+    },
+    "E2-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "E2-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "E2-3": {
+      "status": "available",
+      "vehicle": null
+    },
+    "E2-4": {
+      "status": "available",
+      "vehicle": null
+    },
+    "E2-5": {
+      "status": "available",
+      "vehicle": null
+    },
+    "E2-6": {
+      "status": "available",
+      "vehicle": null
+    },
+    "E3-1": {
+      "status": "available",
+      "vehicle": null
+    },
+    "E3-2": {
+      "status": "available",
+      "vehicle": null
+    },
+    "E3-3": {
+      "status": "available",
+      "vehicle": null
+    },
+    "E3-4": {
+      "status": "available",
+      "vehicle": null
+    },
+    "E3-5": {
+      "status": "available",
+      "vehicle": null
+    },
+    "E3-6": {
+      "status": "available",
+      "vehicle": null
+    }
+  },
+  "models": {
+    "Ford": [
+      "Explorer",
+      "F-150",
+      "F‑150",
+      "T-250",
+      "T-350",
+      "T-350 HD"
+    ],
+    "RAM": [
+      "2500",
+      "4500",
+      "ProMaster"
+    ],
+    "Chevrolet": [
+      "Silverado"
+    ],
+    "Kia": [],
+    "Toyota": [],
+    "Chrystler": [],
+    "Dodge": [],
+    "Nissan": [],
+    "Mitsubishi": [],
+    "Chrysler": []
+  },
+  "version": 1,
+  "updatedAt": "2025-08-12T18:19:00.328Z"
+}
