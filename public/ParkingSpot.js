@@ -1,5 +1,4 @@
 // ===== Remote state (CodeSandbox) =====
-
 const REMOTE_BASE = window.location.origin;
 const REMOTE_ENABLED = true;
 
@@ -13,6 +12,21 @@ async function remoteSave(payload) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+}
+
+/* =============== SAFE LOCAL STORAGE HELPERS =============== */
+function safeSet(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); }
+  catch (e) { console.warn("Storage save failed:", e); }
+}
+function safeGet(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    console.warn("Storage load failed:", e);
+    return null;
+  }
 }
 
 const canvas = document.getElementById("parking-canvas");
@@ -79,9 +93,7 @@ const spotElMap = new Map();
 layout.forEach((spot) => {
   if (spot.id.startsWith("D") || spot.id.startsWith("E")) return;
   const el = document.createElement("div");
-  el.className = `parking-spot ${
-    spot.orientation === "horizontal" ? "horizontal" : ""
-  }`;
+  el.className = `parking-spot ${spot.orientation === "horizontal" ? "horizontal" : ""}`;
   el.style.left = `${spot.x}px`;
   el.style.top = `${spot.y}px`;
   el.title = spot.id;
@@ -98,9 +110,7 @@ blockD.style.transformOrigin = "1400px 400px";
 layout.forEach((spot) => {
   if (!spot.id.startsWith("D")) return;
   const el = document.createElement("div");
-  el.className = `parking-spot ${
-    spot.orientation === "horizontal" ? "horizontal" : ""
-  }`;
+  el.className = `parking-spot ${spot.orientation === "horizontal" ? "horizontal" : ""}`;
   el.style.left = `${spot.x}px`;
   el.style.top = `${spot.y}px`;
   el.title = spot.id;
@@ -118,9 +128,7 @@ blockE.style.transformOrigin = "1100px 1000px";
 layout.forEach((spot) => {
   if (!spot.id.startsWith("E")) return;
   const el = document.createElement("div");
-  el.className = `parking-spot ${
-    spot.orientation === "horizontal" ? "horizontal" : ""
-  }`;
+  el.className = `parking-spot ${spot.orientation === "horizontal" ? "horizontal" : ""}`;
   el.style.left = `${spot.x}px`;
   el.style.top = `${spot.y}px`;
   el.title = spot.id;
@@ -132,8 +140,7 @@ canvas.appendChild(blockE);
 
 /* =============== ZOOM & DRAG =============== */
 let zoom = 1;
-const minZoom = 0.2,
-  maxZoom = 2;
+const minZoom = 0.2, maxZoom = 2;
 window.zoomIn = () => {
   zoom = Math.min(maxZoom, zoom + 0.1);
   canvas.style.transform = `scale(${zoom})`;
@@ -144,11 +151,7 @@ window.zoomOut = () => {
 };
 
 const wrapper = document.getElementById("canvas-container");
-let isDragging = false,
-  startX,
-  startY,
-  scrollLeft,
-  scrollTop;
+let isDragging = false, startX, startY, scrollLeft, scrollTop;
 wrapper.addEventListener("mousedown", (e) => {
   isDragging = true;
   wrapper.classList.add("grabbing");
@@ -190,10 +193,7 @@ actionsBar.appendChild(clearBtn);
 
 /* =============== STATIC FORM DATA =============== */
 const currentYear = new Date().getFullYear();
-const years = Array.from(
-  { length: currentYear - 2004 },
-  (_, i) => `${2005 + i}`
-);
+const years = Array.from({ length: currentYear - 2004 }, (_, i) => `${2005 + i}`);
 const colors = ["Black", "White", "Red", "Blue", "Green", "Silver"];
 const tireTypes = ["Summer", "Winter"];
 
@@ -201,17 +201,11 @@ const tireTypes = ["Summer", "Winter"];
 function createDropdown(name, value, disabled = false, list = []) {
   return `
     <label>${name}<select name="${name}" ${disabled ? "disabled" : ""}>
-      ${list
-        .map(
-          (opt) => `<option ${value === opt ? "selected" : ""}>${opt}</option>`
-        )
-        .join("")}
+      ${list.map((opt) => `<option ${value === opt ? "selected" : ""}>${opt}</option>`).join("")}
     </select></label>`;
 }
 function createInput(name, value = "", disabled = false) {
-  return `<label>${name}<input name="${name}" value="${value}" ${
-    disabled ? "readonly" : ""
-  }></label>`;
+  return `<label>${name}<input name="${name}" value="${value}" ${disabled ? "readonly" : ""}></label>`;
 }
 function renderSpotColor(spot) {
   const el = spotElMap.get(spot.id);
@@ -228,9 +222,7 @@ function mergeModels(local, remote) {
   const out = { ...local };
   for (const [brand, variants] of Object.entries(remote || {})) {
     if (!out[brand]) out[brand] = [];
-    const set = new Set(
-      out[brand].map((v) => (v || "").trim()).filter(Boolean)
-    );
+    const set = new Set(out[brand].map((v) => (v || "").trim()).filter(Boolean));
     (variants || []).forEach((v) => {
       const t = (v || "").trim();
       if (t) set.add(t);
@@ -269,9 +261,8 @@ async function loadState() {
 
   // Fallback: local-only
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    const snapshot = JSON.parse(raw);
+    const snapshot = safeGet(STORAGE_KEY);
+    if (!snapshot) return;
     layout.forEach((s) => {
       const saved = snapshot[s.id];
       if (saved) {
@@ -303,7 +294,7 @@ async function saveState() {
   }
 
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(spots));
+    safeSet(STORAGE_KEY, spots);
   } catch (e) {
     console.warn("local save failed:", e);
   }
@@ -318,10 +309,7 @@ let modelStore = {}; // { Brand: [Variant,...] }
 function formatName(str) {
   if (!str) return "";
   const t = str.trim().replace(/\s+/g, " ");
-  return t.replace(
-    /\w\S*/g,
-    (w) => w[0].toUpperCase() + w.slice(1).toLowerCase()
-  );
+  return t.replace(/\w\S*/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase());
 }
 function keyOf(str) {
   return (str || "").trim().toLowerCase();
@@ -329,8 +317,8 @@ function keyOf(str) {
 
 function loadModelStore() {
   try {
-    const raw = localStorage.getItem(MODELS_KEY);
-    modelStore = raw ? JSON.parse(raw) : {};
+    const obj = safeGet(MODELS_KEY);
+    modelStore = obj || {};
   } catch {
     modelStore = {};
   }
@@ -338,7 +326,7 @@ function loadModelStore() {
 }
 function saveModelStore() {
   try {
-    localStorage.setItem(MODELS_KEY, JSON.stringify(modelStore));
+    safeSet(MODELS_KEY, modelStore);
   } catch (e) {
     console.warn("Failed to save models locally:", e);
   }
@@ -362,9 +350,7 @@ function getModelNames() {
   return Object.keys(modelStore).sort((a, b) => a.localeCompare(b));
 }
 function getVariantsFor(modelName) {
-  return (modelStore[modelName] || [])
-    .slice()
-    .sort((a, b) => a.localeCompare(b));
+  return (modelStore[modelName] || []).slice().sort((a, b) => a.localeCompare(b));
 }
 function addModel(modelName) {
   const display = formatName(modelName);
@@ -375,8 +361,7 @@ function addModel(modelName) {
   return { ok: true, model: display };
 }
 function addVariant(modelName, variant) {
-  const model = formatName(modelName),
-    varName = formatName(variant);
+  const model = formatName(modelName), varName = formatName(variant);
   if (!model) return { ok: false, reason: "Model required" };
   if (!varName) return addModel(model);
   if (!modelStore[model]) modelStore[model] = [];
@@ -416,9 +401,7 @@ function populateQuickModelSelect() {
   if (!quickModelSelect) return;
   quickModelSelect.innerHTML =
     `<option value="">— New Model —</option>` +
-    getModelNames()
-      .map((m) => `<option>${m}</option>`)
-      .join("");
+    getModelNames().map((m) => `<option>${m}</option>`).join("");
 }
 function handleQuickAdd() {
   if (!quickAddBtn) return;
@@ -457,8 +440,7 @@ function handleQuickAdd() {
 }
 
 /* =============== HIGHLIGHTING (model/variant/tire/VIN) =============== */
-let vinFlashTimeout = null,
-  vinFlashSpotId = null;
+let vinFlashTimeout = null, vinFlashSpotId = null;
 
 function applyHighlights() {
   layout.forEach(renderSpotColor);
@@ -476,18 +458,18 @@ function applyHighlights() {
     const matchesVariant =
       matchesModel && variantVal && spot.vehicle?.variant === variantVal;
     if (matchesVariant || (matchesModel && !variantVal))
-      el.style.backgroundColor = "#8b5cf6";
+      el.style.backgroundColor = "#8b5cf6"; // purple for model/variant
     if (tireVal && spot.vehicle?.tires === tireVal)
-      el.style.backgroundColor = "#f59e0b";
+      el.style.backgroundColor = "#f59e0b"; // yellow for tires
   });
 
   if (vinFlashSpotId) {
     const el = spotElMap.get(vinFlashSpotId);
-    if (el) el.style.backgroundColor = "#3b82f6";
+    if (el) el.style.backgroundColor = "#3b82f6"; // blue for VIN flash
   }
 }
 
-function flashVINSpot(spotId, ms = 3000) {
+function flashVINSpot(spotId, ms = 3500) {
   if (vinFlashTimeout) clearTimeout(vinFlashTimeout);
   vinFlashSpotId = spotId;
   applyHighlights();
@@ -540,34 +522,19 @@ function openWidget(spot, isEditMode = false) {
     selectedModel = v.model;
   }
   let variantsForModel = getVariantsFor(selectedModel);
-  if (
-    v.variant &&
-    variantsForModel.every((x) => keyOf(x) !== keyOf(v.variant))
-  ) {
+  if (v.variant && variantsForModel.every((x) => keyOf(x) !== keyOf(v.variant))) {
     variantsForModel = [v.variant, ...variantsForModel];
   }
   const selectedVariant = v.variant || variantsForModel[0] || "";
 
   widgetTitle.innerText = isOccupied
-    ? isEditMode
-      ? "Edit Car Info"
-      : "Car Details"
+    ? isEditMode ? "Edit Car Info" : "Car Details"
     : "Add New Car";
 
   formFields.innerHTML = `
     ${createDropdown("Car Model", selectedModel, disabled, allModels)}
-    ${createDropdown(
-      "Model Variant",
-      selectedVariant,
-      disabled || variantsForModel.length === 0,
-      variantsForModel
-    )}
-    ${createDropdown(
-      "Year",
-      v.year || years[years.length - 1],
-      disabled,
-      years
-    )}
+    ${createDropdown("Model Variant", selectedVariant, disabled || variantsForModel.length === 0, variantsForModel)}
+    ${createDropdown("Year", v.year || years[years.length - 1], disabled, years)}
     ${createDropdown("Color", v.color || colors[0], disabled, colors)}
     ${createDropdown("Tires", v.tires || tireTypes[0], disabled, tireTypes)}
     ${createInput("VIN Number", v.vin || "", disabled)}
@@ -576,45 +543,22 @@ function openWidget(spot, isEditMode = false) {
 
   if (!disabled) {
     const modelSelect = formFields.querySelector('select[name="Car Model"]');
-    const variantSelect = formFields.querySelector(
-      'select[name="Model Variant"]'
-    );
+    const variantSelect = formFields.querySelector('select[name="Model Variant"]');
     modelSelect.addEventListener("change", () => {
       const newModel = modelSelect.value;
       const newVariants = getVariantsFor(newModel);
-      variantSelect.innerHTML = newVariants
-        .map((opt) => `<option>${opt}</option>`)
-        .join("");
+      variantSelect.innerHTML = newVariants.map((opt) => `<option>${opt}</option>`).join("");
       variantSelect.disabled = newVariants.length === 0;
       variantSelect.value = newVariants.length ? newVariants[0] : "";
     });
   }
 
   if (!isOccupied) {
-    setActions({
-      showSave: true,
-      saveLabel: "Save",
-      showCancel: false,
-      showModify: false,
-      showClear: false,
-    });
+    setActions({ showSave: true, saveLabel: "Save", showCancel: false, showModify: false, showClear: false });
   } else if (!isEditMode) {
-    setActions({
-      showSave: false,
-      showModify: true,
-      cancelLabel: "Modify",
-      cancelHandler: () => enableEdit(),
-      showClear: true,
-    });
+    setActions({ showSave: false, showModify: true, cancelLabel: "Modify", cancelHandler: () => enableEdit(), showClear: true });
   } else {
-    setActions({
-      showSave: true,
-      saveLabel: "Save Changes",
-      showCancel: true,
-      cancelLabel: "Cancel",
-      cancelHandler: () => cancelEdit(),
-      showClear: true,
-    });
+    setActions({ showSave: true, saveLabel: "Save Changes", showCancel: true, cancelLabel: "Cancel", cancelHandler: () => cancelEdit(), showClear: true });
   }
 }
 function closeWidget() {
@@ -679,11 +623,7 @@ const statAvailable = document.getElementById("stat-available");
 const modelCountsContainer = document.getElementById("model-counts");
 const vinInput = document.getElementById("vin-search");
 
-let variantFilter = null,
-  tireFilter = null,
-  tireStatsSection = null,
-  statWinterEl = null,
-  statSummerEl = null;
+let variantFilter = null, tireFilter = null, tireStatsSection = null, statWinterEl = null, statSummerEl = null;
 
 function initInjectedControls() {
   // Variant filter under model filter
@@ -700,12 +640,7 @@ function initInjectedControls() {
   tireFilterSection.innerHTML = `<h4>Highlight by Tires</h4>`;
   tireFilter = document.createElement("select");
   tireFilter.id = "tire-filter";
-  tireFilter.innerHTML = `<option value="">— Select tires —</option>${[
-    "Summer",
-    "Winter",
-  ]
-    .map((t) => `<option>${t}</option>`)
-    .join("")}`;
+  tireFilter.innerHTML = `<option value="">— Select tires —</option>${["Summer","Winter"].map((t) => `<option>${t}</option>`).join("")}`;
   tireFilterSection.appendChild(tireFilter);
   rightToolbar.insertBefore(
     tireFilterSection,
@@ -727,27 +662,19 @@ function initTireStatsSection() {
 }
 
 /* =============== VIN search (blue flash) =============== */
-function normalizeVIN(v) {
-  return (v || "").toString().trim().toUpperCase();
-}
+function normalizeVIN(v) { return (v || "").toString().trim().toUpperCase(); }
 function findSpotByVIN(vin) {
   const needle = normalizeVIN(vin);
   if (!needle) return null;
-  return (
-    layout.find(
-      (s) => s.status === "occupied" && normalizeVIN(s.vehicle?.vin) === needle
-    ) || null
-  );
+  return layout.find(
+    (s) => s.status === "occupied" && normalizeVIN(s.vehicle?.vin) === needle
+  ) || null;
 }
 function scrollSpotIntoView(spotId) {
   const el = spotElMap.get(spotId);
   if (!el) return;
   try {
-    el.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-      inline: "center",
-    });
+    el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
   } catch {
     const rect = el.getBoundingClientRect();
     wrapper.scrollLeft += rect.left - wrapper.clientWidth / 2;
@@ -793,9 +720,7 @@ function renderModelCounts() {
   const counts = {};
   layout.forEach((s) => {
     if (s.status === "occupied" && s.vehicle?.model) {
-      const key = s.vehicle.variant
-        ? `${s.vehicle.model} ${s.vehicle.variant}`
-        : s.vehicle.model;
+      const key = s.vehicle.variant ? `${s.vehicle.model} ${s.vehicle.variant}` : s.vehicle.model;
       counts[key] = (counts[key] || 0) + 1;
     }
   });
@@ -803,12 +728,10 @@ function renderModelCounts() {
   modelCountsContainer.innerHTML =
     entries.length === 0
       ? `<div style="color:#6b7280;font-size:13px;">No cars yet.</div>`
-      : entries
-          .map(
-            ([label, count]) =>
-              `<div class="stat-line"><span>${label}</span><strong>${count}</strong></div>`
-          )
-          .join("");
+      : entries.map(
+          ([label, count]) =>
+            `<div class="stat-line"><span>${label}</span><strong>${count}</strong></div>`
+        ).join("");
 }
 function refreshRightPanel() {
   recomputeStats();
@@ -918,5 +841,3 @@ async function initRightToolbar() {
 window.addEventListener("load", () => {
   initRightToolbar();
 });
-
-
