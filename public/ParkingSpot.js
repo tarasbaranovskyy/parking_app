@@ -1,27 +1,5 @@
 // ===== Remote state (CodeSandbox) =====
-// ===== Utility Functions =====
-function safeSet(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); } 
-  catch (e) { console.error("Storage save failed", e); }
-}
 
-function safeGet(key) {
-  try { return JSON.parse(localStorage.getItem(key) || 'null'); } 
-  catch (e) { return null; }
-}
-
-// ===== Your existing functions =====
-function loadState() {
-  return safeGet('parking_app_v1'); // example key
-}
-
-function saveState(data) {
-  safeSet('parking_app_v1', data);
-}
-
-function restoreFromSaved(data) {
-  // your existing rendering logic here
-}
 const REMOTE_BASE = window.location.origin;
 const REMOTE_ENABLED = true;
 
@@ -936,11 +914,9 @@ async function initRightToolbar() {
     layout.forEach(renderSpotColor);
   });
 }
-document.addEventListener('DOMContentLoaded', () => {
-  const saved = loadState();
-  if (saved) restoreFromSaved(saved);
-});
+
 window.addEventListener("load", () => {
   initRightToolbar();
 });
+
 
