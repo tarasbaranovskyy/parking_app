@@ -1,6 +1,11 @@
 // ===== Remote state (CodeSandbox) =====
+// Auto-disable remote state unless we are on CodeSandbox
 const REMOTE_BASE = window.location.origin;
-const REMOTE_ENABLED = true;
+const REMOTE_ENABLED = /(?:csb\.app|codesandbox\.io)$/i.test(location.host);
+
+// Optional: version log so you KNOW the fresh build loaded
+console.log("Parking App build", "2025-08-12-14:20");
+
 
 async function remoteLoad() {
   const r = await fetch(`${REMOTE_BASE}/state`, { cache: "no-store" });
@@ -841,3 +846,4 @@ async function initRightToolbar() {
 window.addEventListener("load", () => {
   initRightToolbar();
 });
+
