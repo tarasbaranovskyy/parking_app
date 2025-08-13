@@ -67,13 +67,13 @@ function readState() {
   }
 }
 
-function writeState(obj) {
+async function writeState(obj) {
   const state = {
     ...obj,
     updatedAt: new Date().toISOString(),
     version: (obj.version || 0) + 1,
   };
-  fs.writeFileSync(FILE, JSON.stringify(state, null, 2), "utf8");
+  await fs.promises.writeFile(FILE, JSON.stringify(state, null, 2), "utf8");
   return state;
 }
 
@@ -195,13 +195,14 @@ app.get("/state", (_req, res) => {
   res.json(readState());
 });
 
-app.put("/state", (req, res) => {
+app.put("/state", async (req, res) => {
   const err = validateState(req.body);
   if (err) {
     return res.status(400).json({ ok: false, error: err });
   }
   const { spots, models, version } = req.body;
-  res.json({ ok: true, state: writeState({ spots, models, version }) });
+  const state = await writeState({ spots, models, version });
+  res.json({ ok: true, state });
 });
 
 // catch-all: serve index.html if someone hits a route directly
