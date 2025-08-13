@@ -190,12 +190,12 @@ function validateState(payload) {
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
-app.get("/state", (_req, res) => {
+function getStateHandler(_req, res) {
   res.set("Cache-Control", "no-store");
   res.json(readState());
-});
+}
 
-app.put("/state", async (req, res) => {
+async function putStateHandler(req, res) {
   const err = validateState(req.body);
   if (err) {
     return res.status(400).json({ ok: false, error: err });
@@ -203,7 +203,12 @@ app.put("/state", async (req, res) => {
   const { spots, models, version } = req.body;
   const state = await writeState({ spots, models, version });
   res.json({ ok: true, state });
-});
+}
+
+app.get("/state", getStateHandler);
+app.get("/api/state", getStateHandler);
+app.put("/state", putStateHandler);
+app.put("/api/state", putStateHandler);
 
 // catch-all: serve index.html if someone hits a route directly
 app.get("*", (_req, res) => {
