@@ -1,4 +1,6 @@
 // /api/state.js — Vercel Serverless Function (Upstash Redis backend)
+import validateState from "../lib/validateState.js";
+
 export default async function handler(req, res) {
   // CORS (safe even if same-origin)
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -44,6 +46,10 @@ export default async function handler(req, res) {
         payload = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
       } catch (e) {
         return res.status(400).json({ error: "Invalid JSON" });
+      }
+      const err = validateState(payload);
+      if (err) {
+        return res.status(400).json({ error: err });
       }
       await redis("SET", KEY, JSON.stringify(payload));
       return res.status(200).json({ ok: true });
