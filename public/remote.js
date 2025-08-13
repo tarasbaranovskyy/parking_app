@@ -5,7 +5,17 @@ const onVercel = /\.vercel\.app$/i.test(host);
 const isLocalHost = /(localhost|127\.0\.0\.1)(?::\d+)?$/i.test(host);
 const onPublicHost = !isLocalHost && !/^(\[::1\])(?::\d+)?$/.test(host);
 
-const REMOTE_ENABLED = FORCE_REMOTE || onCSB || onVercel || onPublicHost;
+const ALWAYS_REMOTE =
+  (typeof process !== "undefined" && process.env.ALWAYS_REMOTE === "1") ||
+  (typeof window !== "undefined" && window.ALWAYS_REMOTE);
+
+const REMOTE_ENABLED =
+  FORCE_REMOTE ||
+  ALWAYS_REMOTE ||
+  onCSB ||
+  onVercel ||
+  onPublicHost ||
+  isLocalHost;
 
 const STATE_PATH = "/api/state";
 
@@ -13,6 +23,7 @@ console.log("Parking App build", "sync-2025-08-13", {
   host,
   REMOTE_ENABLED,
   FORCE_REMOTE,
+  ALWAYS_REMOTE,
 });
 
 export async function remoteLoad() {
