@@ -30,11 +30,21 @@ export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
       const { result } = await redis("GET", KEY);
-      return res.status(200).json(result ? JSON.parse(result) : {});
+      if (!result) return res.status(200).json({});
+      try {
+        return res.status(200).json(JSON.parse(result));
+      } catch (e) {
+        return res.status(400).json({ error: "Invalid JSON" });
+      }
     }
 
     if (req.method === "PUT") {
-      const payload = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+      let payload;
+      try {
+        payload = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+      } catch (e) {
+        return res.status(400).json({ error: "Invalid JSON" });
+      }
       await redis("SET", KEY, JSON.stringify(payload));
       return res.status(200).json({ ok: true });
     }
