@@ -1,54 +1,6 @@
-// ===== Remote state (Vercel API + CodeSandbox) =====
-// Enable remote on CodeSandbox, Vercel, *and any non-local host*.
-// You can also force-enable via ?remote=1 in the URL.
-const host = location.host;
-const FORCE_REMOTE = /(?:^|[?&])remote=1\b/.test(location.search);
-const onCSB = /(?:csb\.app|codesandbox\.io)$/i.test(host);
-const onVercel = /\.vercel\.app$/i.test(host);
-const isLocalHost = /(localhost|127\.0\.0\.1)(?::\d+)?$/i.test(host);
-const onPublicHost = !isLocalHost && !/^(\[::1\])(?::\d+)?$/.test(host);
+import { remoteLoad, remoteSave } from './remote.js';
+import { canvas, layout, spotElMap, initLayout, renderSpotColor } from './layout.js';
 
-const REMOTE_ENABLED = FORCE_REMOTE || onCSB || onVercel || onPublicHost;
-
-// Same-origin serverless function
-const STATE_PATH = "/api/state";
-
-// Version log so you KNOW the fresh build loaded (bump when you deploy)
-console.log("Parking App build", "sync-2025-08-13", {
-  host,
-  REMOTE_ENABLED,
-  FORCE_REMOTE,
-});
-
-// Remote I/O (safe, with fallback handled by loadState/saveState)
-async function remoteLoad() {
-  if (!REMOTE_ENABLED) return null;
-  try {
-    const r = await fetch(STATE_PATH, { cache: "no-store" });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return (await r.json()) || {};
-  } catch (e) {
-    console.warn("Remote load disabled this session:", e);
-    return null;
-  }
-}
-async function remoteSave(payload) {
-  if (!REMOTE_ENABLED) return false;
-  try {
-    const r = await fetch(STATE_PATH, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return true;
-  } catch (e) {
-    console.warn("Remote save failed; staying local:", e);
-    return false;
-  }
-}
-
-/* =============== SAFE LOCAL STORAGE HELPERS =============== */
 function safeSet(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); }
   catch (e) { console.warn("Storage save failed:", e); }
@@ -63,126 +15,18 @@ function safeGet(key) {
   }
 }
 
-const canvas = document.getElementById("parking-canvas");
-
-/* =============== CORE LAYOUT =============== */
-function createSpot(id, x, y, orientation = "vertical") {
-  return {
-    id,
-    x,
-    y,
-    orientation,
-    status: "available",
-    vehicle: null, // { model, variant, year, color, vin, plate, tires }
-  };
-}
-function createRow(
-  idPrefix,
-  startX,
-  startY,
-  count,
-  orientation = "vertical",
-  spacing = 70,
-  reverse = false
-) {
-  return Array.from({ length: count }, (_, i) => {
-    const index = reverse ? count - 1 - i : i;
-    return createSpot(
-      `${idPrefix}-${i + 1}`,
-      startX + index * spacing,
-      startY,
-      orientation
-    );
-  });
-}
-
-const layout = [
-  ...createRow("A1", 100, 600, 10),
-  ...createRow("A2", 100, 700, 10),
-  ...createRow("B1", 100, 1000, 12),
-  ...createRow("B2", 100, 1100, 12),
-  ...createRow("B3V", 800, 1200, 5, "vertical", -70),
-  ...createRow("B3H", 420, 1200, 2, "horizontal", -90),
-  ...createRow("C1", 800, 100, 7),
-  ...createRow("C2", 800, 200, 8),
-  ...createRow("C3", 870, 300, 8),
-  ...createRow("C4", 870, 400, 9),
-  ...createRow("C5", 870, 500, 8),
-  ...createRow("C6", 870, 600, 7),
-  ...createRow("C7V", 870, 700, 3),
-  ...createRow("C7H", 1060, 720, 1, "horizontal"),
-  ...createRow("D1V", 1650, -230, 2),
-  ...createRow("D1H", 1800, -210, 4, "horizontal", 120),
-  ...createRow("D2", 1800, -140, 8),
-  ...createRow("D3", 1800, -40, 8),
-  ...createRow("D4", 1800, 60, 8),
-  ...createRow("E1", 1040, 1000, 6),
-  ...createRow("E2", 1040, 1100, 6),
-  ...createRow("E3", 1040, 1200, 6),
-];
-
-const spotElMap = new Map();
-
-// Render normal spots (A–C)
-layout.forEach((spot) => {
-  if (spot.id.startsWith("D") || spot.id.startsWith("E")) return;
-  const el = document.createElement("div");
-  el.className = `parking-spot ${spot.orientation === "horizontal" ? "horizontal" : ""}`;
-  el.style.left = `${spot.x}px`;
-  el.style.top = `${spot.y}px`;
-  el.title = spot.id;
-  el.addEventListener("click", () => openWidget(spot));
-  canvas.appendChild(el);
-  spotElMap.set(spot.id, el);
-});
-
-// Rotated block D
-const blockD = document.createElement("div");
-blockD.className = "parking-block";
-blockD.style.transform = "rotate(90deg)";
-blockD.style.transformOrigin = "1400px 400px";
-layout.forEach((spot) => {
-  if (!spot.id.startsWith("D")) return;
-  const el = document.createElement("div");
-  el.className = `parking-spot ${spot.orientation === "horizontal" ? "horizontal" : ""}`;
-  el.style.left = `${spot.x}px`;
-  el.style.top = `${spot.y}px`;
-  el.title = spot.id;
-  el.addEventListener("click", () => openWidget(spot));
-  blockD.appendChild(el);
-  spotElMap.set(spot.id, el);
-});
-canvas.appendChild(blockD);
-
-// Rotated block E
-const blockE = document.createElement("div");
-blockE.className = "parking-block";
-blockE.style.transform = "rotate(25deg)";
-blockE.style.transformOrigin = "1100px 1000px";
-layout.forEach((spot) => {
-  if (!spot.id.startsWith("E")) return;
-  const el = document.createElement("div");
-  el.className = `parking-spot ${spot.orientation === "horizontal" ? "horizontal" : ""}`;
-  el.style.left = `${spot.x}px`;
-  el.style.top = `${spot.y}px`;
-  el.title = spot.id;
-  el.addEventListener("click", () => openWidget(spot));
-  blockE.appendChild(el);
-  spotElMap.set(spot.id, el);
-});
-canvas.appendChild(blockE);
 
 /* =============== ZOOM & DRAG =============== */
 let zoom = 1;
 const minZoom = 0.2, maxZoom = 2;
-window.zoomIn = () => {
+function zoomIn() {
   zoom = Math.min(maxZoom, zoom + 0.1);
   canvas.style.transform = `scale(${zoom})`;
-};
-window.zoomOut = () => {
+}
+function zoomOut() {
   zoom = Math.max(minZoom, zoom - 0.1);
   canvas.style.transform = `scale(${zoom})`;
-};
+}
 
 const wrapper = document.getElementById("canvas-container");
 let isDragging = false, startX, startY, scrollLeft, scrollTop;
@@ -241,15 +85,6 @@ function createDropdown(name, value, disabled = false, list = []) {
 function createInput(name, value = "", disabled = false) {
   return `<label>${name}<input name="${name}" value="${value}" ${disabled ? "readonly" : ""}></label>`;
 }
-function renderSpotColor(spot) {
-  const el = spotElMap.get(spot.id);
-  if (!el) return;
-  el.style.backgroundColor = spot.status === "occupied" ? "#ef4444" : "#10b981";
-  const icon = getOrCreateSpotIcon(el);
-  icon.style.opacity = spot.status === "occupied" ? "1" : "0";
-}
-
-/* =============== STATE PERSISTENCE (REMOTE + FALLBACK) =============== */
 const STORAGE_KEY = "parking_layout_v1"; // fallback only
 
 function mergeModels(local, remote) {
@@ -313,7 +148,7 @@ async function saveState() {
     spots[s.id] = {
       status: s.status,
       vehicle: s.vehicle ? { ...s.vehicle } : null,
-    };
+}
   });
 
   const payload = { spots, models: modelStore };
@@ -365,7 +200,7 @@ function seedDefaultModels() {
     Dodge: [],
     Nissan: [],
     Mitsubishi: [],
-  };
+}
   saveModelStore();
 }
 function getModelNames() {
@@ -609,7 +444,7 @@ function saveSpotData() {
     tires: data["Tires"],
     vin: data["VIN Number"],
     plate: data["Immatriculation Plate"],
-  };
+}
   currentSpot.status = "occupied";
   renderSpotColor(currentSpot);
 
@@ -787,28 +622,6 @@ function onModelsChanged() {
 }
 
 /* =============== ICON (car.jpg) =============== */
-function getOrCreateSpotIcon(el) {
-  let ic = el.querySelector(".spot-icon");
-  if (!ic) {
-    ic = document.createElement("img");
-    ic.className = "spot-icon";
-    ic.src = "car.jpg"; // place car.jpg in /public next to index.html
-    Object.assign(ic.style, {
-      position: "absolute",
-      inset: "0",
-      width: "70%",
-      height: "70%",
-      margin: "auto",
-      pointerEvents: "none",
-      opacity: "0",
-      objectFit: "contain",
-      filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.25))",
-    });
-    el.appendChild(ic);
-  }
-  return ic;
-}
-
 /* =============== INIT =============== */
 async function initRightToolbar() {
   initInjectedControls();
@@ -859,6 +672,13 @@ async function initRightToolbar() {
     layout.forEach(renderSpotColor);
   });
 }
+
+initLayout(openWidget);
+
+document.getElementById("zoom-in-btn").addEventListener("click", zoomIn);
+document.getElementById("zoom-out-btn").addEventListener("click", zoomOut);
+document.getElementById("widget-close-btn").addEventListener("click", closeWidget);
+saveBtn.addEventListener("click", saveSpotData);
 
 window.addEventListener("load", () => {
   initRightToolbar();

@@ -8,8 +8,8 @@
   </head>
   <body>
     <div class="zoom-controls">
-      <button onclick="zoomIn()">➕</button>
-      <button onclick="zoomOut()">➖</button>
+       <button id="zoom-in-btn">➕</button>
+       <button id="zoom-out-btn">➖</button>
     </div>
 
     <div id="canvas-container">
@@ -19,14 +19,14 @@
     <div id="info-widget" class="info-widget hidden">
       <div class="widget-header">
         <h3 id="widget-title">Add New Car</h3>
-        <button onclick="closeWidget()">×</button>
+         <button id="widget-close-btn">×</button>
       </div>
       <div id="form-fields"></div>
       <div class="widget-actions">
-        <button id="cancel-btn" class="hidden" onclick="cancelEdit()">
+        <button id="cancel-btn" class="hidden">
           Cancel
         </button>
-        <button id="save-btn" onclick="saveSpotData()">Save</button>
+        <button id="save-btn">Save</button>
       </div>
     </div>
 
@@ -61,7 +61,7 @@
       </div>
     </aside>
 
-<script src="/ParkingSpot.js?v=sync-4" defer></script>
+<script type="module" src="./ui.js"></script>
 
   </body>
 </html>

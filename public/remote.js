@@ -1,0 +1,44 @@
+const host = location.host;
+const FORCE_REMOTE = /(?:^|[?&])remote=1\b/.test(location.search);
+const onCSB = /(?:csb\.app|codesandbox\.io)$/i.test(host);
+const onVercel = /\.vercel\.app$/i.test(host);
+const isLocalHost = /(localhost|127\.0\.0\.1)(?::\d+)?$/i.test(host);
+const onPublicHost = !isLocalHost && !/^(\[::1\])(?::\d+)?$/.test(host);
+
+const REMOTE_ENABLED = FORCE_REMOTE || onCSB || onVercel || onPublicHost;
+
+const STATE_PATH = "/api/state";
+
+console.log("Parking App build", "sync-2025-08-13", {
+  host,
+  REMOTE_ENABLED,
+  FORCE_REMOTE,
+});
+
+export async function remoteLoad() {
+  if (!REMOTE_ENABLED) return null;
+  try {
+    const r = await fetch(STATE_PATH, { cache: "no-store" });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return (await r.json()) || {};
+  } catch (e) {
+    console.warn("Remote load disabled this session:", e);
+    return null;
+  }
+}
+
+export async function remoteSave(payload) {
+  if (!REMOTE_ENABLED) return false;
+  try {
+    const r = await fetch(STATE_PATH, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return true;
+  } catch (e) {
+    console.warn("Remote save failed; staying local:", e);
+    return false;
+  }
+}
