@@ -1,6 +1,6 @@
-// /api/state.js — Vercel Serverless Function
+// /api/state.js — Vercel Serverless Function (Upstash Redis backend)
 export default async function handler(req, res) {
-  // CORS (harmless even if same-origin)
+  // CORS (safe even if same-origin)
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,PUT,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -8,7 +8,9 @@ export default async function handler(req, res) {
 
   const url   = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return res.status(500).json({ error: "KV not configured" });
+  if (!url || !token) {
+    return res.status(500).json({ error: "KV not configured" });
+  }
 
   const KEY = "parking_app_state_v1";
 
