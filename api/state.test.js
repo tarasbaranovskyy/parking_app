@@ -86,7 +86,7 @@ test('PUT persists state and returns ok', async () => {
   };
 
   try {
-    const payload = { car: 1 };
+    const payload = { spots: {}, models: {}, version: 1 };
     const resPut = createRes();
     await handler({ method: 'PUT', body: payload }, resPut);
     assert.equal(resPut.statusCode, 200);
@@ -96,6 +96,22 @@ test('PUT persists state and returns ok', async () => {
     await handler({ method: 'GET' }, resGet);
     assert.equal(resGet.statusCode, 200);
     assert.deepEqual(resGet.body, payload);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('PUT invalid state returns 400', async () => {
+  process.env.UPSTASH_REDIS_REST_URL = 'url';
+  process.env.UPSTASH_REDIS_REST_TOKEN = 'token';
+  const originalFetch = global.fetch;
+  global.fetch = () => { throw new Error('should not fetch'); };
+
+  try {
+    const res = createRes();
+    await handler({ method: 'PUT', body: {} }, res);
+    assert.equal(res.statusCode, 400);
+    assert.deepEqual(res.body, { error: 'version must be a number' });
   } finally {
     global.fetch = originalFetch;
   }
@@ -127,7 +143,8 @@ test('Upstash PUT failure returns 500', async () => {
 
   try {
     const res = createRes();
-    await handler({ method: 'PUT', body: {} }, res);
+    const payload = { spots: {}, models: {}, version: 1 };
+    await handler({ method: 'PUT', body: payload }, res);
     assert.equal(res.statusCode, 500);
     assert.deepEqual(res.body, { error: 'Server error' });
   } finally {
