@@ -12,7 +12,24 @@ const app = express();
 
 // parse json first
 app.use(express.json({ limit: "2mb" }));
-app.use(cors({ origin: "*", methods: ["GET", "PUT", "OPTIONS"] }));
+
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "PUT", "OPTIONS"],
+  })
+);
 
 // serve your frontend from /public (make sure the folder exists)
 app.use(express.static(path.join(__dirname, "public")));
