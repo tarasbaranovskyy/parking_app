@@ -1,22 +1,43 @@
-// ===== Remote state (CodeSandbox) =====
-// Auto-disable remote state unless we are on CodeSandbox
-const REMOTE_BASE = window.location.origin;
-const REMOTE_ENABLED = /(?:csb\.app|codesandbox\.io)$/i.test(location.host);
+// ===== Remote state (Vercel API + CodeSandbox) =====
+// Enable remote on CodeSandbox and on Vercel production domain.
+// If you use a custom domain, add it to onProd below.
+const onCSB    = /(?:csb\.app|codesandbox\.io)$/i.test(location.host);
+const onVercel = /\.vercel\.app$/i.test(location.host);
+// const onProd = /(?:yourcustomdomain\.com)$/i.test(location.host); // <- add if needed
+const REMOTE_ENABLED = onCSB || onVercel /* || onProd */;
 
-// Optional: version log so you KNOW the fresh build loaded
-console.log("Parking App build", "2025-08-12-14:20");
+// Same-origin serverless function
+const STATE_PATH = "/api/state";
 
+// Version log so you KNOW the fresh build loaded (bump when you deploy)
+console.log("Parking App build", "sync-2025-08-13");
 
+// Remote I/O (safe, with fallback handled by loadState/saveState)
 async function remoteLoad() {
-  const r = await fetch(`${REMOTE_BASE}/state`, { cache: "no-store" });
-  return (await r.json()) || {};
+  if (!REMOTE_ENABLED) return null;
+  try {
+    const r = await fetch(STATE_PATH, { cache: "no-store" });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return (await r.json()) || {};
+  } catch (e) {
+    console.warn("Remote load disabled this session:", e);
+    return null;
+  }
 }
 async function remoteSave(payload) {
-  await fetch(`${REMOTE_BASE}/state`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  if (!REMOTE_ENABLED) return false;
+  try {
+    const r = await fetch(STATE_PATH, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return true;
+  } catch (e) {
+    console.warn("Remote save failed; staying local:", e);
+    return false;
+  }
 }
 
 /* =============== SAFE LOCAL STORAGE HELPERS =============== */
@@ -238,41 +259,37 @@ function mergeModels(local, remote) {
 }
 
 async function loadState() {
-  try {
-    if (REMOTE_ENABLED) {
-      const s = await remoteLoad();
-
-      // spots
-      layout.forEach((spot) => {
-        const saved = s.spots?.[spot.id];
-        if (saved) {
-          spot.status = saved.status || "available";
-          spot.vehicle = saved.vehicle || null;
-        }
-      });
-
-      // models: MERGE server with locally-seeded list (not replace)
-      if (s.models && typeof s.models === "object") {
-        modelStore = mergeModels(modelStore, s.models);
+  // Try remote first (when enabled)
+  const s = await remoteLoad();
+  if (s) {
+    // spots
+    layout.forEach((spot) => {
+      const saved = s.spots?.[spot.id];
+      if (saved) {
+        spot.status = saved.status || "available";
+        spot.vehicle = saved.vehicle || null;
       }
+    });
 
-      // push merged list back to server once so everyone shares it
-      await remoteSave({ spots: s.spots || {}, models: modelStore });
-      return;
+    // models: MERGE server with locally-seeded list (not replace)
+    if (s.models && typeof s.models === "object") {
+      modelStore = mergeModels(modelStore, s.models);
     }
-  } catch (e) {
-    console.warn("remote load failed:", e);
+
+    // push merged list back to server once so everyone shares it (best-effort)
+    await remoteSave({ spots: s.spots || {}, models: modelStore });
+    return;
   }
 
   // Fallback: local-only
   try {
     const snapshot = safeGet(STORAGE_KEY);
     if (!snapshot) return;
-    layout.forEach((s) => {
-      const saved = snapshot[s.id];
+    layout.forEach((sp) => {
+      const saved = snapshot[sp.id];
       if (saved) {
-        s.status = saved.status || "available";
-        s.vehicle = saved.vehicle || null;
+        sp.status = saved.status || "available";
+        sp.vehicle = saved.vehicle || null;
       }
     });
   } catch (e) {
@@ -289,19 +306,11 @@ async function saveState() {
     };
   });
 
-  try {
-    if (REMOTE_ENABLED) {
-      await remoteSave({ spots, models: modelStore });
-      return;
-    }
-  } catch (e) {
-    console.warn("remote save failed:", e);
-  }
-
-  try {
-    safeSet(STORAGE_KEY, spots);
-  } catch (e) {
-    console.warn("local save failed:", e);
+  // Try remote (when enabled); always keep a local copy as safety
+  const ok = await remoteSave({ spots, models: modelStore });
+  if (!ok) {
+    try { safeSet(STORAGE_KEY, spots); }
+    catch (e) { console.warn("local save failed:", e); }
   }
 }
 
@@ -316,9 +325,7 @@ function formatName(str) {
   const t = str.trim().replace(/\s+/g, " ");
   return t.replace(/\w\S*/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase());
 }
-function keyOf(str) {
-  return (str || "").trim().toLowerCase();
-}
+function keyOf(str) { return (str || "").trim().toLowerCase(); }
 
 function loadModelStore() {
   try {
@@ -330,11 +337,8 @@ function loadModelStore() {
   if (Object.keys(modelStore).length === 0) seedDefaultModels();
 }
 function saveModelStore() {
-  try {
-    safeSet(MODELS_KEY, modelStore);
-  } catch (e) {
-    console.warn("Failed to save models locally:", e);
-  }
+  try { safeSet(MODELS_KEY, modelStore); }
+  catch (e) { console.warn("Failed to save models locally:", e); }
   saveState(); // also persist to server
 }
 function seedDefaultModels() {
@@ -596,7 +600,7 @@ function saveSpotData() {
   currentSpot.status = "occupied";
   renderSpotColor(currentSpot);
 
-  // (Optional) learn newly saved model/variant
+  // Learn newly saved model/variant
   if (currentSpot.vehicle.model) addModel(currentSpot.vehicle.model);
   if (currentSpot.vehicle.model && currentSpot.vehicle.variant)
     addVariant(currentSpot.vehicle.model, currentSpot.vehicle.variant);
@@ -846,4 +850,3 @@ async function initRightToolbar() {
 window.addEventListener("load", () => {
   initRightToolbar();
 });
-
