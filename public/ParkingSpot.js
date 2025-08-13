@@ -1,16 +1,24 @@
 // ===== Remote state (Vercel API + CodeSandbox) =====
-// Enable remote on CodeSandbox and on Vercel production domain.
-// If you use a custom domain, add it to onProd below.
-const onCSB    = /(?:csb\.app|codesandbox\.io)$/i.test(location.host);
-const onVercel = /\.vercel\.app$/i.test(location.host);
-// const onProd = /(?:yourcustomdomain\.com)$/i.test(location.host); // <- add if needed
-const REMOTE_ENABLED = onCSB || onVercel /* || onProd */;
+// Enable remote on CodeSandbox, Vercel, *and any non-local host*.
+// You can also force-enable via ?remote=1 in the URL.
+const host = location.host;
+const FORCE_REMOTE = /(?:^|[?&])remote=1\b/.test(location.search);
+const onCSB = /(?:csb\.app|codesandbox\.io)$/i.test(host);
+const onVercel = /\.vercel\.app$/i.test(host);
+const isLocalHost = /(localhost|127\.0\.0\.1)(?::\d+)?$/i.test(host);
+const onPublicHost = !isLocalHost && !/^(\[::1\])(?::\d+)?$/.test(host);
+
+const REMOTE_ENABLED = FORCE_REMOTE || onCSB || onVercel || onPublicHost;
 
 // Same-origin serverless function
 const STATE_PATH = "/api/state";
 
 // Version log so you KNOW the fresh build loaded (bump when you deploy)
-console.log("Parking App build", "sync-2025-08-13");
+console.log("Parking App build", "sync-2025-08-13", {
+  host,
+  REMOTE_ENABLED,
+  FORCE_REMOTE,
+});
 
 // Remote I/O (safe, with fallback handled by loadState/saveState)
 async function remoteLoad() {
@@ -278,6 +286,8 @@ async function loadState() {
 
     // push merged list back to server once so everyone shares it (best-effort)
     await remoteSave({ spots: s.spots || {}, models: modelStore });
+    // also mirror locally for fast offline reloads
+    safeSet(STORAGE_KEY, s.spots || {});
     return;
   }
 
@@ -306,11 +316,14 @@ async function saveState() {
     };
   });
 
-  // Try remote (when enabled); always keep a local copy as safety
-  const ok = await remoteSave({ spots, models: modelStore });
+  const payload = { spots, models: modelStore };
+
+  // Try remote; also mirror local so offline reload shows latest saved state
+  const ok = await remoteSave(payload);
+  try { safeSet(STORAGE_KEY, spots); } catch (e) { console.warn("local mirror failed:", e); }
+
   if (!ok) {
-    try { safeSet(STORAGE_KEY, spots); }
-    catch (e) { console.warn("local save failed:", e); }
+    console.warn("Remote save not available; using local only this time.");
   }
 }
 
