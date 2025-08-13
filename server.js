@@ -1,7 +1,8 @@
 // server.js (ESM)
 import express from "express";
 import cors from "cors";
-import fs from "fs";
+import fs from "fs/promises";
+import { existsSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -20,8 +21,8 @@ app.use(express.static(path.join(__dirname, "public")));
 const FILE = path.join(__dirname, "state.json");
 
 // ensure state file exists
-if (!fs.existsSync(FILE)) {
-  fs.writeFileSync(
+if (!existsSync(FILE)) {
+  await fs.writeFile(
     FILE,
     JSON.stringify(
       {
@@ -37,9 +38,9 @@ if (!fs.existsSync(FILE)) {
   );
 }
 
-function readState() {
+async function readState() {
   try {
-    return JSON.parse(fs.readFileSync(FILE, "utf8"));
+    return JSON.parse(await fs.readFile(FILE, "utf8"));
   } catch {
     return {
       spots: {},
@@ -50,31 +51,31 @@ function readState() {
   }
 }
 
-function writeState(obj) {
+async function writeState(obj) {
   const state = {
     ...obj,
     updatedAt: new Date().toISOString(),
     version: (obj.version || 0) + 1,
   };
-  fs.writeFileSync(FILE, JSON.stringify(state, null, 2), "utf8");
+  await fs.writeFile(FILE, JSON.stringify(state, null, 2), "utf8");
   return state;
 }
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
-app.get("/state", (_req, res) => {
+app.get("/state", async (_req, res) => {
   res.set("Cache-Control", "no-store");
-  res.json(readState());
+  res.json(await readState());
 });
 
-app.put("/state", (req, res) => {
+app.put("/state", async (req, res) => {
   const b = req.body || {};
   const next = {
     spots: b.spots && typeof b.spots === "object" ? b.spots : {},
     models: b.models && typeof b.models === "object" ? b.models : {},
     version: b.version || 0,
   };
-  res.json({ ok: true, state: writeState(next) });
+  res.json({ ok: true, state: await writeState(next) });
 });
 
 // catch-all: serve index.html if someone hits a route directly
