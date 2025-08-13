@@ -1,31 +1,23 @@
 // ===== Remote state (Vercel API + CodeSandbox) =====
-// Enable remote on CodeSandbox, Vercel, *and any non-local host*.
-// You can also force-enable via ?remote=1 in the URL.
-const host = location.host;
-const FORCE_REMOTE = /(?:^|[?&])remote=1\b/.test(location.search);
-const onCSB = /(?:csb\.app|codesandbox\.io)$/i.test(host);
-const onVercel = /\.vercel\.app$/i.test(host);
-const isLocalHost = /(localhost|127\.0\.0\.1)(?::\d+)?$/i.test(host);
-const onPublicHost = !isLocalHost && !/^(\[::1\])(?::\d+)?$/.test(host);
-
-const REMOTE_ENABLED = FORCE_REMOTE || onCSB || onVercel || onPublicHost;
+// Enable remote on CodeSandbox and on Vercel production domain.
+// If you use a custom domain, add it to onProd below.
+const onCSB    = /(?:csb\.app|codesandbox\.io)$/i.test(location.host);
+const onVercel = /\.vercel\.app$/i.test(location.host);
+// const onProd = /(?:yourcustomdomain\.com)$/i.test(location.host); // <- add if needed
+const REMOTE_ENABLED = onCSB || onVercel /* || onProd */;
 
 // Same-origin serverless function
 const STATE_PATH = "/api/state";
 
 // Version log so you KNOW the fresh build loaded (bump when you deploy)
-console.log("Parking App build", "sync-2025-08-13", {
-  host,
-  REMOTE_ENABLED,
-  FORCE_REMOTE,
-});
+console.log("Parking App build", "sync-2025-08-13");
 
 // Remote I/O (safe, with fallback handled by loadState/saveState)
 async function remoteLoad() {
   if (!REMOTE_ENABLED) return null;
   try {
     const r = await fetch(STATE_PATH, { cache: "no-store" });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    if (!r.ok) throw new Error(HTTP ${r.status});
     return (await r.json()) || {};
   } catch (e) {
     console.warn("Remote load disabled this session:", e);
@@ -40,7 +32,7 @@ async function remoteSave(payload) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    if (!r.ok) throw new Error(HTTP ${r.status});
     return true;
   } catch (e) {
     console.warn("Remote save failed; staying local:", e);
@@ -88,7 +80,7 @@ function createRow(
   return Array.from({ length: count }, (_, i) => {
     const index = reverse ? count - 1 - i : i;
     return createSpot(
-      `${idPrefix}-${i + 1}`,
+      ${idPrefix}-${i + 1},
       startX + index * spacing,
       startY,
       orientation
@@ -127,9 +119,9 @@ const spotElMap = new Map();
 layout.forEach((spot) => {
   if (spot.id.startsWith("D") || spot.id.startsWith("E")) return;
   const el = document.createElement("div");
-  el.className = `parking-spot ${spot.orientation === "horizontal" ? "horizontal" : ""}`;
-  el.style.left = `${spot.x}px`;
-  el.style.top = `${spot.y}px`;
+  el.className = parking-spot ${spot.orientation === "horizontal" ? "horizontal" : ""};
+  el.style.left = ${spot.x}px;
+  el.style.top = ${spot.y}px;
   el.title = spot.id;
   el.addEventListener("click", () => openWidget(spot));
   canvas.appendChild(el);
@@ -144,9 +136,9 @@ blockD.style.transformOrigin = "1400px 400px";
 layout.forEach((spot) => {
   if (!spot.id.startsWith("D")) return;
   const el = document.createElement("div");
-  el.className = `parking-spot ${spot.orientation === "horizontal" ? "horizontal" : ""}`;
-  el.style.left = `${spot.x}px`;
-  el.style.top = `${spot.y}px`;
+  el.className = parking-spot ${spot.orientation === "horizontal" ? "horizontal" : ""};
+  el.style.left = ${spot.x}px;
+  el.style.top = ${spot.y}px;
   el.title = spot.id;
   el.addEventListener("click", () => openWidget(spot));
   blockD.appendChild(el);
@@ -162,9 +154,9 @@ blockE.style.transformOrigin = "1100px 1000px";
 layout.forEach((spot) => {
   if (!spot.id.startsWith("E")) return;
   const el = document.createElement("div");
-  el.className = `parking-spot ${spot.orientation === "horizontal" ? "horizontal" : ""}`;
-  el.style.left = `${spot.x}px`;
-  el.style.top = `${spot.y}px`;
+  el.className = parking-spot ${spot.orientation === "horizontal" ? "horizontal" : ""};
+  el.style.left = ${spot.x}px;
+  el.style.top = ${spot.y}px;
   el.title = spot.id;
   el.addEventListener("click", () => openWidget(spot));
   blockE.appendChild(el);
@@ -177,11 +169,11 @@ let zoom = 1;
 const minZoom = 0.2, maxZoom = 2;
 window.zoomIn = () => {
   zoom = Math.min(maxZoom, zoom + 0.1);
-  canvas.style.transform = `scale(${zoom})`;
+  canvas.style.transform = scale(${zoom});
 };
 window.zoomOut = () => {
   zoom = Math.max(minZoom, zoom - 0.1);
-  canvas.style.transform = `scale(${zoom})`;
+  canvas.style.transform = scale(${zoom});
 };
 
 const wrapper = document.getElementById("canvas-container");
@@ -227,19 +219,19 @@ actionsBar.appendChild(clearBtn);
 
 /* =============== STATIC FORM DATA =============== */
 const currentYear = new Date().getFullYear();
-const years = Array.from({ length: currentYear - 2004 }, (_, i) => `${2005 + i}`);
+const years = Array.from({ length: currentYear - 2004 }, (_, i) => ${2005 + i});
 const colors = ["Black", "White", "Red", "Blue", "Green", "Silver"];
 const tireTypes = ["Summer", "Winter"];
 
 /* =============== HELPERS (FORM/RENDER) =============== */
 function createDropdown(name, value, disabled = false, list = []) {
-  return `
+  return 
     <label>${name}<select name="${name}" ${disabled ? "disabled" : ""}>
-      ${list.map((opt) => `<option ${value === opt ? "selected" : ""}>${opt}</option>`).join("")}
-    </select></label>`;
+      ${list.map((opt) => <option ${value === opt ? "selected" : ""}>${opt}</option>).join("")}
+    </select></label>;
 }
 function createInput(name, value = "", disabled = false) {
-  return `<label>${name}<input name="${name}" value="${value}" ${disabled ? "readonly" : ""}></label>`;
+  return <label>${name}<input name="${name}" value="${value}" ${disabled ? "readonly" : ""}></label>;
 }
 function renderSpotColor(spot) {
   const el = spotElMap.get(spot.id);
@@ -286,8 +278,6 @@ async function loadState() {
 
     // push merged list back to server once so everyone shares it (best-effort)
     await remoteSave({ spots: s.spots || {}, models: modelStore });
-    // also mirror locally for fast offline reloads
-    safeSet(STORAGE_KEY, s.spots || {});
     return;
   }
 
@@ -316,14 +306,11 @@ async function saveState() {
     };
   });
 
-  const payload = { spots, models: modelStore };
-
-  // Try remote; also mirror local so offline reload shows latest saved state
-  const ok = await remoteSave(payload);
-  try { safeSet(STORAGE_KEY, spots); } catch (e) { console.warn("local mirror failed:", e); }
-
+  // Try remote (when enabled); always keep a local copy as safety
+  const ok = await remoteSave({ spots, models: modelStore });
   if (!ok) {
-    console.warn("Remote save not available; using local only this time.");
+    try { safeSet(STORAGE_KEY, spots); }
+    catch (e) { console.warn("local save failed:", e); }
   }
 }
 
@@ -406,13 +393,13 @@ function ensureQuickAddUI() {
   const section = document.createElement("div");
   section.className = "rt-section";
   section.id = "model-manager";
-  section.innerHTML = `
+  section.innerHTML = 
     <h4>Quick Add Model/Variant</h4>
     <div style="display:flex; gap:6px; flex-wrap:wrap;">
       <select id="quick-model-select" style="flex:1;"></select>
       <input id="quick-variant-input" type="text" placeholder="Variant" style="flex:1; min-width:100px;" />
       <button id="quick-add-btn" style="flex:0;">➕</button>
-    </div>`;
+    </div>;
   rightToolbar.insertBefore(section, rightToolbar.firstChild);
 
   quickModelSelect = document.getElementById("quick-model-select");
@@ -422,8 +409,8 @@ function ensureQuickAddUI() {
 function populateQuickModelSelect() {
   if (!quickModelSelect) return;
   quickModelSelect.innerHTML =
-    `<option value="">— New Model —</option>` +
-    getModelNames().map((m) => `<option>${m}</option>`).join("");
+    <option value="">— New Model —</option> +
+    getModelNames().map((m) => <option>${m}</option>).join("");
 }
 function handleQuickAdd() {
   if (!quickAddBtn) return;
@@ -553,7 +540,7 @@ function openWidget(spot, isEditMode = false) {
     ? isEditMode ? "Edit Car Info" : "Car Details"
     : "Add New Car";
 
-  formFields.innerHTML = `
+  formFields.innerHTML = 
     ${createDropdown("Car Model", selectedModel, disabled, allModels)}
     ${createDropdown("Model Variant", selectedVariant, disabled || variantsForModel.length === 0, variantsForModel)}
     ${createDropdown("Year", v.year || years[years.length - 1], disabled, years)}
@@ -561,7 +548,7 @@ function openWidget(spot, isEditMode = false) {
     ${createDropdown("Tires", v.tires || tireTypes[0], disabled, tireTypes)}
     ${createInput("VIN Number", v.vin || "", disabled)}
     ${createInput("Immatriculation Plate", v.plate || "", disabled)}
-  `;
+  ;
 
   if (!disabled) {
     const modelSelect = formFields.querySelector('select[name="Car Model"]');
@@ -569,7 +556,7 @@ function openWidget(spot, isEditMode = false) {
     modelSelect.addEventListener("change", () => {
       const newModel = modelSelect.value;
       const newVariants = getVariantsFor(newModel);
-      variantSelect.innerHTML = newVariants.map((opt) => `<option>${opt}</option>`).join("");
+      variantSelect.innerHTML = newVariants.map((opt) => <option>${opt}</option>).join("");
       variantSelect.disabled = newVariants.length === 0;
       variantSelect.value = newVariants.length ? newVariants[0] : "";
     });
@@ -659,10 +646,10 @@ function initInjectedControls() {
   const rightToolbar = document.getElementById("right-toolbar");
   const tireFilterSection = document.createElement("div");
   tireFilterSection.className = "rt-section";
-  tireFilterSection.innerHTML = `<h4>Highlight by Tires</h4>`;
+  tireFilterSection.innerHTML = <h4>Highlight by Tires</h4>;
   tireFilter = document.createElement("select");
   tireFilter.id = "tire-filter";
-  tireFilter.innerHTML = `<option value="">— Select tires —</option>${["Summer","Winter"].map((t) => `<option>${t}</option>`).join("")}`;
+  tireFilter.innerHTML = <option value="">— Select tires —</option>${["Summer","Winter"].map((t) => <option>${t}</option>).join("")};
   tireFilterSection.appendChild(tireFilter);
   rightToolbar.insertBefore(
     tireFilterSection,
@@ -674,10 +661,10 @@ function initTireStatsSection() {
   const rightToolbar = document.getElementById("right-toolbar");
   tireStatsSection = document.createElement("div");
   tireStatsSection.className = "rt-section";
-  tireStatsSection.innerHTML = `
+  tireStatsSection.innerHTML = 
     <h4>Tire Statistics</h4>
     <div class="stat-line"><span>Winter</span><strong id="stat-winter">0</strong></div>
-    <div class="stat-line"><span>Summer</span><strong id="stat-summer">0</strong></div>`;
+    <div class="stat-line"><span>Summer</span><strong id="stat-summer">0</strong></div>;
   rightToolbar.appendChild(tireStatsSection);
   statWinterEl = tireStatsSection.querySelector("#stat-winter");
   statSummerEl = tireStatsSection.querySelector("#stat-summer");
@@ -742,17 +729,17 @@ function renderModelCounts() {
   const counts = {};
   layout.forEach((s) => {
     if (s.status === "occupied" && s.vehicle?.model) {
-      const key = s.vehicle.variant ? `${s.vehicle.model} ${s.vehicle.variant}` : s.vehicle.model;
+      const key = s.vehicle.variant ? ${s.vehicle.model} ${s.vehicle.variant} : s.vehicle.model;
       counts[key] = (counts[key] || 0) + 1;
     }
   });
   const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
   modelCountsContainer.innerHTML =
     entries.length === 0
-      ? `<div style="color:#6b7280;font-size:13px;">No cars yet.</div>`
+      ? <div style="color:#6b7280;font-size:13px;">No cars yet.</div>
       : entries.map(
           ([label, count]) =>
-            `<div class="stat-line"><span>${label}</span><strong>${count}</strong></div>`
+            <div class="stat-line"><span>${label}</span><strong>${count}</strong></div>
         ).join("");
 }
 function refreshRightPanel() {
@@ -765,9 +752,9 @@ function refreshRightPanel() {
 function populateModelFilterFromStore() {
   const options = ["— Select model —", ...getModelNames()];
   modelFilter.innerHTML = options
-    .map((m, i) => `<option value="${i === 0 ? "" : m}">${m}</option>`)
+    .map((m, i) => <option value="${i === 0 ? "" : m}">${m}</option>)
     .join("");
-  variantFilter.innerHTML = `<option value="">— Select variant —</option>`;
+  variantFilter.innerHTML = <option value="">— Select variant —</option>;
   variantFilter.disabled = true;
 }
 function onModelsChanged() {
@@ -775,9 +762,9 @@ function onModelsChanged() {
   const selected = modelFilter.value;
   if (selected) {
     const variants = getVariantsFor(selected);
-    variantFilter.innerHTML = `<option value="">— All variants —</option>${variants
-      .map((v) => `<option>${v}</option>`)
-      .join("")}`;
+    variantFilter.innerHTML = <option value="">— All variants —</option>${variants
+      .map((v) => <option>${v}</option>)
+      .join("")};
     variantFilter.disabled = variants.length === 0;
   }
   if (!widget.classList.contains("hidden") && currentSpot) {
@@ -836,12 +823,12 @@ async function initRightToolbar() {
     const selected = e.target.value;
     if (selected) {
       const variants = getVariantsFor(selected) || [];
-      variantFilter.innerHTML = `<option value="">— All variants —</option>${variants
-        .map((v) => `<option>${v}</option>`)
-        .join("")}`;
+      variantFilter.innerHTML = <option value="">— All variants —</option>${variants
+        .map((v) => <option>${v}</option>)
+        .join("")};
       variantFilter.disabled = variants.length === 0;
     } else {
-      variantFilter.innerHTML = `<option value="">— Select variant —</option>`;
+      variantFilter.innerHTML = <option value="">— Select variant —</option>;
       variantFilter.disabled = true;
     }
     applyHighlights();
@@ -863,3 +850,5 @@ async function initRightToolbar() {
 window.addEventListener("load", () => {
   initRightToolbar();
 });
+
+
