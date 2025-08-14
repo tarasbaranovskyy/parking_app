@@ -6,6 +6,51 @@ body {
   overflow: hidden;
 }
 
+/* Lock Status Indicator */
+.lock-status {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(107, 114, 128, 0.9);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.lock-status.editing {
+  background: rgba(34, 197, 94, 0.9);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.lock-status.locked {
+  background: rgba(239, 68, 68, 0.9);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.lock-status.unlocked {
+  background: rgba(107, 114, 128, 0.9);
+  border-color: rgba(107, 114, 128, 0.3);
+}
+
+#lock-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+#lock-text {
+  font-weight: 500;
+  font-size: 13px;
+}
+
 /* Zoom Controls */
 .zoom-controls {
   position: fixed;
@@ -206,6 +251,15 @@ body {
   background-color: #d1d5db;
 }
 
+#clear-btn {
+  background-color: #ef4444;
+  color: white;
+}
+
+#clear-btn:hover {
+  background-color: #dc2626;
+}
+
 /* Right Toolbar - Fixed and unaffected by zoom */
 .right-toolbar {
   position: fixed;
@@ -254,6 +308,11 @@ body {
   color: #3730a3;
   border: none;
 }
+
+.right-toolbar button:hover {
+  background: #c7d2fe;
+}
+
 #vin-search {
   width: 325px; /* or whatever size you want */
 }
@@ -266,6 +325,64 @@ body {
   font-size: 14px;
   color: #374151;
 }
- h2{
- text-align:center;
+
+h2 {
+  text-align: center;
+}
+
+/* Connection status indicator */
+.connection-status {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 999;
+  transition: all 0.3s ease;
+}
+
+.connection-status.connected {
+  background: rgba(34, 197, 94, 0.1);
+  color: #16a34a;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.connection-status.disconnected {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.connection-status.reconnecting {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .right-toolbar {
+    width: 100%;
+    height: auto;
+    position: fixed;
+    bottom: 0;
+    top: auto;
+    max-height: 50vh;
+    border-left: none;
+    border-top: 1px solid #e5e7eb;
+  }
+  
+  #canvas-container {
+    margin-right: 0;
+    margin-bottom: 50vh;
+  }
+  
+  .lock-status {
+    top: 10px;
+    right: 10px;
+    font-size: 12px;
+    padding: 6px 12px;
+  }
 }
