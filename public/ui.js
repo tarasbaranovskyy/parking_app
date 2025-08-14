@@ -1,4 +1,4 @@
-import { remoteLoad, remoteSave, subscribe } from './remote.js';
+import { remoteLoad, remoteSave, subscribe, acquireLock, releaseLock } from './remote.js';
 import { canvas, layout, spotElMap, initLayout, renderSpotColor } from './layout.js';
 
 subscribe(updateFromServer);
@@ -375,13 +375,33 @@ function setActions({
 }
 
 /* =============== OPEN/CLOSE WIDGET =============== */
-function openWidget(spot, isEditMode = false) {
+let lockHeld = false;
+
+async function releaseLockIfHeld() {
+  if (lockHeld) {
+    lockHeld = false;
+    try { await releaseLock(); } catch {}
+  }
+}
+
+async function openWidget(spot, isEditMode = false) {
   currentSpot = spot;
   widget.classList.remove("hidden");
 
   const isOccupied = spot.status === "occupied";
+  let editing = isEditMode || !isOccupied;
+  if (editing) {
+    const locked = await acquireLock();
+    if (!locked) {
+      editing = false;
+      alert('Another editor is currently making changes. Opening in read-only mode.');
+    } else {
+      lockHeld = true;
+    }
+  }
+
   const v = spot.vehicle || {};
-  const disabled = isOccupied && !isEditMode;
+  const disabled = isOccupied && !editing;
 
   // Dynamic model/variant from store (dropdowns)
   const allModels = getModelNames();
@@ -400,7 +420,7 @@ function openWidget(spot, isEditMode = false) {
   const selectedVariant = v.variant || variantsForModel[0] || "";
 
   widgetTitle.innerText = isOccupied
-    ? isEditMode ? "Edit Car Info" : "Car Details"
+    ? editing ? "Edit Car Info" : "Car Details"
     : "Add New Car";
 
   formFields.innerHTML = `
@@ -427,7 +447,7 @@ function openWidget(spot, isEditMode = false) {
 
   if (!isOccupied) {
     setActions({ showSave: true, saveLabel: "Save", showCancel: false, showModify: false, showClear: false });
-  } else if (!isEditMode) {
+  } else if (!editing) {
     setActions({ showSave: false, showModify: true, cancelLabel: "Modify", cancelHandler: () => enableEdit(), showClear: true });
   } else {
     setActions({ showSave: true, saveLabel: "Save Changes", showCancel: true, cancelLabel: "Cancel", cancelHandler: () => cancelEdit(), showClear: true });
@@ -436,11 +456,13 @@ function openWidget(spot, isEditMode = false) {
 function closeWidget() {
   widget.classList.add("hidden");
   currentSpot = null;
+  releaseLockIfHeld();
 }
 function enableEdit() {
   openWidget(currentSpot, true);
 }
 function cancelEdit() {
+  releaseLockIfHeld();
   openWidget(currentSpot, false);
 }
 
@@ -472,6 +494,7 @@ function saveSpotData() {
   saveState();
   refreshRightPanel();
   applyHighlights();
+  releaseLockIfHeld();
   closeWidget();
 }
 function clearSpotData() {
@@ -483,6 +506,7 @@ function clearSpotData() {
   saveState();
   refreshRightPanel();
   applyHighlights();
+  releaseLockIfHeld();
   closeWidget();
 }
 
@@ -697,4 +721,8 @@ saveBtn.addEventListener("click", saveSpotData);
 
 window.addEventListener("load", () => {
   initRightToolbar();
+});
+
+window.addEventListener('beforeunload', () => {
+  releaseLockIfHeld();
 });
