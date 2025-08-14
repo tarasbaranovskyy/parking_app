@@ -26,6 +26,24 @@ console.log("Parking App build", "sync-2025-08-13", {
   ALWAYS_REMOTE,
 });
 
+const id = crypto.randomUUID();
+
+export async function acquireLock() {
+  const r = await fetch('/api/lock', {
+    method: 'POST',
+    body: JSON.stringify({ id }),
+    headers: { 'Content-Type': 'application/json' }
+  });
+  const { locked } = await r.json();
+  return locked;
+}
+
+export async function releaseLock() {
+  await fetch(`/api/lock/${id}`, { method: 'DELETE' });
+}
+
+export function getEditorId() { return id; }
+
 export async function remoteLoad() {
   if (!REMOTE_ENABLED) return null;
   try {
@@ -43,7 +61,7 @@ export async function remoteSave(payload) {
   try {
     const r = await fetch(STATE_PATH, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", 'x-editor-id': getEditorId() },
       body: JSON.stringify(payload),
     });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
