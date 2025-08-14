@@ -19,7 +19,7 @@ const REMOTE_ENABLED =
 
 const STATE_PATH = "/api/state";
 
-console.log("Parking App build", "sync-2025-08-13", {
+console.log("Parking App build", "sync-2025-08-14", {
   host,
   REMOTE_ENABLED,
   FORCE_REMOTE,
@@ -29,25 +29,46 @@ console.log("Parking App build", "sync-2025-08-13", {
 const id = crypto.randomUUID();
 
 export async function acquireLock() {
-  const r = await fetch('/api/lock', {
-    method: 'POST',
-    body: JSON.stringify({ id }),
-    headers: { 'Content-Type': 'application/json' }
-  });
-  const { locked } = await r.json();
-  return locked;
+  if (!REMOTE_ENABLED) return false;
+  try {
+    const r = await fetch('/api/lock', {
+      method: 'POST',
+      body: JSON.stringify({ id }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const { locked } = await r.json();
+    return locked;
+  } catch (e) {
+    console.warn("Lock acquisition failed:", e);
+    return false;
+  }
 }
 
 export async function releaseLock() {
-  await fetch(`/api/lock/${id}`, { method: 'DELETE' });
+  if (!REMOTE_ENABLED) return;
+  try {
+    await fetch(`/api/lock/${id}`, { method: 'DELETE' });
+  } catch (e) {
+    console.warn("Lock release failed:", e);
+  }
 }
 
-export function getEditorId() { return id; }
+export function getEditorId() { 
+  return id; 
+}
 
 export async function remoteLoad() {
   if (!REMOTE_ENABLED) return null;
   try {
-    const r = await fetch(STATE_PATH, { cache: "no-store" });
+    const r = await fetch(STATE_PATH, { 
+      cache: "no-store",
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return (await r.json()) || {};
   } catch (e) {
@@ -61,10 +82,16 @@ export async function remoteSave(payload) {
   try {
     const r = await fetch(STATE_PATH, {
       method: "PUT",
-      headers: { "Content-Type": "application/json", 'x-editor-id': getEditorId() },
+      headers: { 
+        "Content-Type": "application/json", 
+        'x-editor-id': getEditorId() 
+      },
       body: JSON.stringify(payload),
     });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    if (!r.ok) {
+      const errorText = await r.text();
+      throw new Error(`HTTP ${r.status}: ${errorText}`);
+    }
     return true;
   } catch (e) {
     console.warn("Remote save failed; staying local:", e);
@@ -72,7 +99,85 @@ export async function remoteSave(payload) {
   }
 }
 
+// Enhanced subscribe function with better error handling and reconnection
 export function subscribe(onMessage) {
-  const es = new EventSource('/api/events');
-  es.onmessage = e => onMessage(JSON.parse(e.data));
+  if (!REMOTE_ENABLED) {
+    console.log("Remote disabled, skipping event subscription");
+    return;
+  }
+
+  let eventSource = null;
+  let reconnectTimer = null;
+  let reconnectAttempts = 0;
+  const maxReconnectAttempts = 5;
+  const baseReconnectDelay = 1000; // 1 second
+
+  function connect() {
+    try {
+      eventSource = new EventSource('/api/events');
+      
+      eventSource.onopen = () => {
+        console.log('EventSource connected');
+        reconnectAttempts = 0; // Reset on successful connection
+      };
+
+      eventSource.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          onMessage(data);
+        } catch (parseError) {
+          console.warn('Failed to parse server message:', parseError);
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.warn('EventSource connection error:', error);
+        
+        if (eventSource.readyState === EventSource.CLOSED) {
+          scheduleReconnect();
+        }
+      };
+
+    } catch (e) {
+      console.error('Failed to create EventSource:', e);
+      scheduleReconnect();
+    }
+  }
+
+  function scheduleReconnect() {
+    if (reconnectAttempts >= maxReconnectAttempts) {
+      console.error('Max reconnection attempts reached. Giving up.');
+      return;
+    }
+
+    const delay = baseReconnectDelay * Math.pow(2, reconnectAttempts); // Exponential backoff
+    reconnectAttempts++;
+    
+    console.log(`Scheduling reconnection attempt ${reconnectAttempts} in ${delay}ms`);
+    
+    reconnectTimer = setTimeout(() => {
+      console.log(`Attempting to reconnect (attempt ${reconnectAttempts})`);
+      connect();
+    }, delay);
+  }
+
+  function cleanup() {
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
+    }
+  }
+
+  // Initial connection
+  connect();
+
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', cleanup);
+  
+  // Return cleanup function for manual cleanup if needed
+  return cleanup;
 }
