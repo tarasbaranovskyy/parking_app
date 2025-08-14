@@ -53,3 +53,8 @@ export async function remoteSave(payload) {
     return false;
   }
 }
+
+export function subscribe(onMessage) {
+  const es = new EventSource('/api/events');
+  es.onmessage = e => onMessage(JSON.parse(e.data));
+}
