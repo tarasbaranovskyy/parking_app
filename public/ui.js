@@ -1,5 +1,7 @@
-import { remoteLoad, remoteSave } from './remote.js';
+import { remoteLoad, remoteSave, subscribe } from './remote.js';
 import { canvas, layout, spotElMap, initLayout, renderSpotColor } from './layout.js';
+
+subscribe(updateFromServer);
 
 function safeSet(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); }
@@ -160,6 +162,19 @@ async function saveState() {
   if (!ok) {
     console.warn("Remote save not available; using local only this time.");
   }
+}
+
+function updateFromServer(state) {
+  const spots = state?.spots || {};
+  layout.forEach((s) => {
+    const saved = spots[s.id];
+    if (saved) {
+      s.status = saved.status || "available";
+      s.vehicle = saved.vehicle || null;
+    }
+  });
+  layout.forEach(renderSpotColor);
+  refreshRightPanel();
 }
 
 /* =========================================================
