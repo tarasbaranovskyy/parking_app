@@ -44,7 +44,11 @@ test('GET returns stored state', async () => {
   process.env.UPSTASH_REDIS_REST_URL = 'url';
   process.env.UPSTASH_REDIS_REST_TOKEN = 'token';
 
-  const stored = { foo: 'bar' };
+  const stored = {
+    version: 1,
+    updatedAt: 'now',
+    data: { spots: {}, vehicles: {}, models: {}, stats: {} },
+  };
   const originalFetch = global.fetch;
   global.fetch = async (url, opts) => {
     const body = JSON.parse(opts.body);
@@ -86,7 +90,10 @@ test('PUT persists state and returns ok with metadata', async () => {
   };
 
   try {
-    const payload = { spots: {}, models: {}, version: 1 };
+    const payload = {
+      version: 1,
+      data: { spots: {}, vehicles: {}, models: {}, stats: {} },
+    };
     const resPut = createRes();
     await handler({ method: 'PUT', body: payload, headers: { 'x-editor-id': null } }, resPut);
     assert.equal(resPut.statusCode, 200);
@@ -99,6 +106,7 @@ test('PUT persists state and returns ok with metadata', async () => {
     assert.equal(resGet.statusCode, 200);
     assert.equal(resGet.body.version, 2);
     assert.ok(resGet.body.updatedAt);
+    assert.deepEqual(resGet.body.data, { spots: {}, vehicles: {}, models: {}, stats: {} });
   } finally {
     global.fetch = originalFetch;
   }
@@ -146,7 +154,10 @@ test('Upstash PUT failure returns 500', async () => {
 
   try {
     const res = createRes();
-    const payload = { spots: {}, models: {}, version: 1 };
+    const payload = {
+      version: 1,
+      data: { spots: {}, vehicles: {}, models: {}, stats: {} },
+    };
     await handler({ method: 'PUT', body: payload, headers: { 'x-editor-id': null } }, res);
     assert.equal(res.statusCode, 500);
     assert.deepEqual(res.body, { error: 'Server error' });

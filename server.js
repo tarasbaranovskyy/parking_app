@@ -93,16 +93,30 @@ if (!fs.existsSync(FILE)) {
     FILE,
     JSON.stringify(
       {
-        spots: {},
-        models: {},
         version: 1,
         updatedAt: new Date().toISOString(),
+        data: { spots: {}, vehicles: {}, models: {}, stats: {} },
       },
       null,
       2
     ),
     "utf8"
   );
+}
+
+function normalizeState(obj) {
+  if (obj && !obj.data) {
+    const {
+      spots = {},
+      vehicles = {},
+      models = {},
+      stats = {},
+      version = 0,
+      updatedAt = null,
+    } = obj;
+    return { version, updatedAt, data: { spots, vehicles, models, stats } };
+  }
+  return obj;
 }
 
 async function redis(cmd, ...args) {
@@ -122,28 +136,27 @@ async function readState() {
   if (useRedis) {
     try {
       const { result } = await redis("GET", REDIS_KEY);
-      if (result) return JSON.parse(result);
+      if (result) return normalizeState(JSON.parse(result));
     } catch (e) {
       console.warn("Redis GET failed, falling back to file:", e);
     }
   }
   try {
-    return JSON.parse(fs.readFileSync(FILE, "utf8"));
+    return normalizeState(JSON.parse(fs.readFileSync(FILE, "utf8")));
   } catch {
     return {
-      spots: {},
-      models: {},
       version: 1,
       updatedAt: new Date().toISOString(),
+      data: { spots: {}, vehicles: {}, models: {}, stats: {} },
     };
   }
 }
 
 async function writeState(obj) {
   const state = {
-    ...obj,
-    updatedAt: new Date().toISOString(),
     version: (obj.version || 0) + 1,
+    updatedAt: new Date().toISOString(),
+    data: obj.data || { spots: {}, vehicles: {}, models: {}, stats: {} },
   };
   if (useRedis) {
     try {
@@ -202,8 +215,8 @@ async function putStateHandler(req, res) {
     return res.status(400).json({ ok: false, error: err });
   }
 
-  const { spots, models, version } = req.body;
-  const state = await writeState({ spots, models, version });
+  const { version, data } = req.body;
+  const state = await writeState({ version, data });
   
   // Always broadcast updated state to all clients
   broadcastStateUpdate(state);

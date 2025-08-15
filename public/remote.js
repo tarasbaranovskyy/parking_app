@@ -59,10 +59,18 @@ export async function remoteLoad() {
 export async function remoteSave(payload) {
   if (!REMOTE_ENABLED) return false;
   try {
+    const {
+      version = 0,
+      spots = {},
+      vehicles = {},
+      models = {},
+      stats = {},
+    } = payload || {};
+    const body = { version, data: { spots, vehicles, models, stats } };
     const r = await fetch(STATE_PATH, {
       method: "PUT",
       headers: { "Content-Type": "application/json", 'x-editor-id': getEditorId() },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(body),
     });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return true;

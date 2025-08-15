@@ -1,6 +1,21 @@
 // /api/state.js — Vercel Serverless Function (Upstash Redis backend)
 import validateState from "../lib/validateState.js";
 
+function normalizeState(obj) {
+  if (obj && !obj.data) {
+    const {
+      spots = {},
+      vehicles = {},
+      models = {},
+      stats = {},
+      version = 0,
+      updatedAt = null,
+    } = obj;
+    return { version, updatedAt, data: { spots, vehicles, models, stats } };
+  }
+  return obj;
+}
+
 let editorId = null;
 const clients = new Set();
 let lockTimer = null;
@@ -55,7 +70,7 @@ export default async function handler(req, res) {
       let state = {};
       if (result) {
         try {
-          state = JSON.parse(result);
+          state = normalizeState(JSON.parse(result));
         } catch {
           state = {};
         }
@@ -100,7 +115,7 @@ export default async function handler(req, res) {
       const { result } = await redis("GET", KEY);
       if (!result) return res.status(200).json({});
       try {
-        return res.status(200).json(JSON.parse(result));
+        return res.status(200).json(normalizeState(JSON.parse(result)));
       } catch (e) {
         return res.status(400).json({ error: "Invalid JSON" });
       }
@@ -122,9 +137,9 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: err });
       }
       const state = {
-        ...payload,
-        updatedAt: new Date().toISOString(),
         version: (payload.version || 0) + 1,
+        updatedAt: new Date().toISOString(),
+        data: payload.data,
       };
       await redis("SET", KEY, JSON.stringify(state));
       for (const client of clients) {

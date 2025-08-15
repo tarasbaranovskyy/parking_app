@@ -1,6 +1,7 @@
 import { remoteLoad, remoteSave, subscribe, acquireLock, releaseLock } from './remote.js';
 import { canvas, layout, spotElMap, initLayout, renderSpotColor } from './layout.js';
 
+let currentVersion = 0;
 subscribe(updateFromServer);
 
 function safeSet(key, value) {
@@ -106,10 +107,12 @@ function mergeModels(local, remote) {
 async function loadState() {
   // Try remote first (when enabled)
   const s = await remoteLoad();
-  if (s) {
+  if (s && s.data) {
+    currentVersion = s.version || 0;
+    const { spots: remoteSpots = {}, models: remoteModels = {} } = s.data;
     // spots
     layout.forEach((spot) => {
-      const saved = s.spots?.[spot.id];
+      const saved = remoteSpots[spot.id];
       if (saved) {
         spot.status = saved.status || "available";
         spot.vehicle = saved.vehicle || null;
@@ -117,14 +120,14 @@ async function loadState() {
     });
 
     // models: MERGE server with locally-seeded list (not replace)
-    if (s.models && typeof s.models === "object") {
-      modelStore = mergeModels(modelStore, s.models);
+    if (remoteModels && typeof remoteModels === "object") {
+      modelStore = mergeModels(modelStore, remoteModels);
     }
 
     // push merged list back to server once so everyone shares it (best-effort)
-    await remoteSave({ spots: s.spots || {}, models: modelStore });
+    await remoteSave({ version: currentVersion, spots: remoteSpots, models: modelStore });
     // also mirror locally for fast offline reloads
-    safeSet(STORAGE_KEY, s.spots || {});
+    safeSet(STORAGE_KEY, remoteSpots);
     return;
   }
 
@@ -150,10 +153,10 @@ async function saveState() {
     spots[s.id] = {
       status: s.status,
       vehicle: s.vehicle ? { ...s.vehicle } : null,
-}
+    };
   });
 
-  const payload = { spots, models: modelStore };
+  const payload = { version: currentVersion, spots, models: modelStore };
 
   // Try remote; also mirror local so offline reload shows latest saved state
   const ok = await remoteSave(payload);
@@ -165,7 +168,9 @@ async function saveState() {
 }
 
 function updateFromServer(state) {
-  const spots = state?.spots || {};
+  if (state?.type && state.type !== 'state_update') return;
+  currentVersion = state?.version || 0;
+  const spots = state?.data?.spots || {};
   layout.forEach((s) => {
     const saved = spots[s.id];
     if (saved) {
