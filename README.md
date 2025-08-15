@@ -18,7 +18,7 @@ ALLOWED_ORIGINS="https://example.com,http://localhost:3000" npm start
 
 ### State Persistence
 
-The serverless API uses [Upstash Redis](https://upstash.com/) to persist parking state between requests. Configure the connection using the following environment variables:
+The app can persist parking state using [Upstash Redis](https://upstash.com/) so that every browser sees the same data. Both the local server (`server.js`) and the serverless API consume the following environment variables:
 
 - `UPSTASH_REDIS_REST_URL` – REST endpoint of your Upstash Redis database.
 - `UPSTASH_REDIS_REST_TOKEN` – authorization token for the database.
@@ -30,7 +30,7 @@ UPSTASH_REDIS_REST_URL=https://<region>.upstash.io
 UPSTASH_REDIS_REST_TOKEN=your-token-here
 ```
 
-These variables enable the API to store and retrieve state from Redis, ensuring data survives across serverless invocations.
+These variables enable the app to store and retrieve state from Redis, ensuring data survives across sessions and devices.
 
 ## How does this work?
 

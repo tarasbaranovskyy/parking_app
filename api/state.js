@@ -121,11 +121,20 @@ export default async function handler(req, res) {
       if (err) {
         return res.status(400).json({ error: err });
       }
-      await redis("SET", KEY, JSON.stringify(payload));
+      const state = {
+        ...payload,
+        updatedAt: new Date().toISOString(),
+        version: (payload.version || 0) + 1,
+      };
+      await redis("SET", KEY, JSON.stringify(state));
       for (const client of clients) {
-        client.write("data: " + JSON.stringify(payload) + "\n\n");
+        try {
+          client.write("data: " + JSON.stringify(state) + "\n\n");
+        } catch {
+          /* ignore write errors */
+        }
       }
-      return res.status(200).json({ ok: true });
+      return res.status(200).json({ ok: true, state });
     }
 
     return res.status(405).json({ error: "Method not allowed" });
