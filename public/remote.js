@@ -90,7 +90,8 @@ export async function remoteSave(payload) {
     });
     if (!r.ok) {
       const errorText = await r.text();
-      throw new Error(`HTTP ${r.status}: ${errorText}`);
+      console.warn(`Remote save failed with HTTP ${r.status}: ${errorText}`);
+      return false;
     }
     return true;
   } catch (e) {
@@ -124,6 +125,7 @@ export function subscribe(onMessage) {
       eventSource.onmessage = (e) => {
         try {
           const data = JSON.parse(e.data);
+          console.log('Received server message:', data);
           onMessage(data);
         } catch (parseError) {
           console.warn('Failed to parse server message:', parseError);
