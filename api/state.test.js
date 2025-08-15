@@ -67,13 +67,13 @@ test('GET returns stored state', async () => {
   }
 });
 
-test('PUT persists state and returns ok', async () => {
+test('PUT persists state and returns ok with metadata', async () => {
   process.env.UPSTASH_REDIS_REST_URL = 'url';
   process.env.UPSTASH_REDIS_REST_TOKEN = 'token';
 
   let store;
   const originalFetch = global.fetch;
-  global.fetch = async (url, opts) => {
+  global.fetch = async (_url, opts) => {
     const [cmd, key, value] = JSON.parse(opts.body);
     assert.equal(key, 'parking_app_state_v1');
     if (cmd === 'SET') {
@@ -90,12 +90,15 @@ test('PUT persists state and returns ok', async () => {
     const resPut = createRes();
     await handler({ method: 'PUT', body: payload, headers: { 'x-editor-id': null } }, resPut);
     assert.equal(resPut.statusCode, 200);
-    assert.deepEqual(resPut.body, { ok: true });
+    assert(resPut.body.ok);
+    assert.equal(resPut.body.state.version, 2);
+    assert.ok(resPut.body.state.updatedAt);
 
     const resGet = createRes();
     await handler({ method: 'GET' }, resGet);
     assert.equal(resGet.statusCode, 200);
-    assert.deepEqual(resGet.body, payload);
+    assert.equal(resGet.body.version, 2);
+    assert.ok(resGet.body.updatedAt);
   } finally {
     global.fetch = originalFetch;
   }

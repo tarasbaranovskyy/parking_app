@@ -73,6 +73,33 @@ export async function remoteSave(payload) {
 }
 
 export function subscribe(onMessage) {
-  const es = new EventSource('/api/events');
-  es.onmessage = e => onMessage(JSON.parse(e.data));
+  if (!REMOTE_ENABLED) return;
+  try {
+    const es = new EventSource('/api/events');
+    es.onmessage = (e) => onMessage(JSON.parse(e.data));
+    es.onerror = () => {
+      es.close();
+      startPolling(onMessage);
+    };
+  } catch {
+    startPolling(onMessage);
+  }
+}
+
+function startPolling(onMessage) {
+  let last;
+  async function poll() {
+    try {
+      const state = await remoteLoad();
+      const serialized = state && JSON.stringify(state);
+      if (serialized && serialized !== last) {
+        last = serialized;
+        onMessage(state);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  poll();
+  setInterval(poll, 5000);
 }
