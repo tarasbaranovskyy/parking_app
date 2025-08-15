@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import handler from './state.js';
+import handler, { __reset } from './state.js';
 
 function createRes() {
   const res = {
@@ -27,130 +27,49 @@ function createRes() {
   return res;
 }
 
-test('PUT invalid JSON returns 400', async () => {
-  process.env.UPSTASH_REDIS_REST_URL = 'url';
-  process.env.UPSTASH_REDIS_REST_TOKEN = 'token';
+function setEnv() {
+  process.env.KV_REST_API_URL = 'url';
+  process.env.KV_REST_API_TOKEN = 'token';
+  process.env.KV_URL = 'url';
+}
 
-  const req = { method: 'PUT', body: '{invalid}', headers: { 'x-editor-id': null } };
+test('GET returns default state', async () => {
+  __reset();
+  setEnv();
   const res = createRes();
-
-  await handler(req, res);
-
-  assert.equal(res.statusCode, 400);
-  assert.deepEqual(res.body, { error: 'Invalid JSON' });
+  await handler({ method: 'GET', headers: {} }, res);
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(res.body, {
+    version: 0,
+    updatedAt: null,
+    data: { spots: [], vehicles: [], models: [], stats: {} },
+  });
 });
 
-test('GET returns stored state', async () => {
-  process.env.UPSTASH_REDIS_REST_URL = 'url';
-  process.env.UPSTASH_REDIS_REST_TOKEN = 'token';
-
-  const stored = { foo: 'bar' };
-  const originalFetch = global.fetch;
-  global.fetch = async (url, opts) => {
-    const body = JSON.parse(opts.body);
-    assert.deepEqual(body, ['GET', 'parking_app_state_v1']);
-    return {
-      ok: true,
-      json: async () => ({ result: JSON.stringify(stored) }),
-    };
-  };
-
-  try {
-    const req = { method: 'GET' };
-    const res = createRes();
-    await handler(req, res);
-
-    assert.equal(res.statusCode, 200);
-    assert.deepEqual(res.body, stored);
-  } finally {
-    global.fetch = originalFetch;
-  }
+test('PUT version mismatch returns 409', async () => {
+  __reset();
+  setEnv();
+  const res = createRes();
+  await handler({ method: 'PUT', headers: { 'If-Match-Version': '1' }, body: {} }, res);
+  assert.equal(res.statusCode, 409);
+  assert.deepEqual(res.body, { currentVersion: 0 });
 });
 
-test('PUT persists state and returns ok with metadata', async () => {
-  process.env.UPSTASH_REDIS_REST_URL = 'url';
-  process.env.UPSTASH_REDIS_REST_TOKEN = 'token';
+test('PUT increments version and persists', async () => {
+  __reset();
+  setEnv();
+  const putRes = createRes();
+  await handler(
+    { method: 'PUT', headers: { 'If-Match-Version': '0' }, body: { foo: 'bar' } },
+    putRes
+  );
+  assert.equal(putRes.statusCode, 200);
+  assert.equal(putRes.body.version, 1);
+  assert.ok(putRes.body.updatedAt);
+  assert.deepEqual(putRes.body.data, { foo: 'bar' });
 
-  let store;
-  const originalFetch = global.fetch;
-  global.fetch = async (_url, opts) => {
-    const [cmd, key, value] = JSON.parse(opts.body);
-    assert.equal(key, 'parking_app_state_v1');
-    if (cmd === 'SET') {
-      store = value;
-      return { ok: true, json: async () => ({}) };
-    }
-    if (cmd === 'GET') {
-      return { ok: true, json: async () => ({ result: store }) };
-    }
-  };
-
-  try {
-    const payload = { spots: {}, models: {}, version: 1 };
-    const resPut = createRes();
-    await handler({ method: 'PUT', body: payload, headers: { 'x-editor-id': null } }, resPut);
-    assert.equal(resPut.statusCode, 200);
-    assert(resPut.body.ok);
-    assert.equal(resPut.body.state.version, 2);
-    assert.ok(resPut.body.state.updatedAt);
-
-    const resGet = createRes();
-    await handler({ method: 'GET' }, resGet);
-    assert.equal(resGet.statusCode, 200);
-    assert.equal(resGet.body.version, 2);
-    assert.ok(resGet.body.updatedAt);
-  } finally {
-    global.fetch = originalFetch;
-  }
-});
-
-test('PUT invalid state returns 400', async () => {
-  process.env.UPSTASH_REDIS_REST_URL = 'url';
-  process.env.UPSTASH_REDIS_REST_TOKEN = 'token';
-  const originalFetch = global.fetch;
-  global.fetch = () => { throw new Error('should not fetch'); };
-
-  try {
-    const res = createRes();
-    await handler({ method: 'PUT', body: {}, headers: { 'x-editor-id': null } }, res);
-    assert.equal(res.statusCode, 400);
-    assert.deepEqual(res.body, { error: 'version must be a number' });
-  } finally {
-    global.fetch = originalFetch;
-  }
-});
-
-test('Upstash GET failure returns 500', async () => {
-  process.env.UPSTASH_REDIS_REST_URL = 'url';
-  process.env.UPSTASH_REDIS_REST_TOKEN = 'token';
-
-  const originalFetch = global.fetch;
-  global.fetch = async () => ({ ok: false, status: 500 });
-
-  try {
-    const res = createRes();
-    await handler({ method: 'GET' }, res);
-    assert.equal(res.statusCode, 500);
-    assert.deepEqual(res.body, { error: 'Server error' });
-  } finally {
-    global.fetch = originalFetch;
-  }
-});
-
-test('Upstash PUT failure returns 500', async () => {
-  process.env.UPSTASH_REDIS_REST_URL = 'url';
-  process.env.UPSTASH_REDIS_REST_TOKEN = 'token';
-
-  const originalFetch = global.fetch;
-  global.fetch = async () => ({ ok: false, status: 500 });
-
-  try {
-    const res = createRes();
-    const payload = { spots: {}, models: {}, version: 1 };
-    await handler({ method: 'PUT', body: payload, headers: { 'x-editor-id': null } }, res);
-    assert.equal(res.statusCode, 500);
-    assert.deepEqual(res.body, { error: 'Server error' });
-  } finally {
-    global.fetch = originalFetch;
-  }
+  const getRes = createRes();
+  await handler({ method: 'GET' }, getRes);
+  assert.equal(getRes.body.version, 1);
+  assert.deepEqual(getRes.body.data, { foo: 'bar' });
 });
