@@ -44,6 +44,17 @@ function broadcastLockStatus() {
   }
 }
 
+// Function to broadcast state updates to all clients
+function broadcastStateUpdate(state) {
+  for (const client of clients) {
+    try {
+      client.write("data: " + JSON.stringify({ type: 'state_update', ...state }) + "\n\n");
+    } catch (e) {
+      clients.delete(client);
+    }
+  }
+}
+
 // Connection health monitoring - clean up disconnected clients
 function cleanupClients() {
   const toRemove = [];
@@ -147,24 +158,24 @@ function getStateHandler(_req, res) {
 
 async function putStateHandler(req, res) {
   const id = req.get("x-editor-id");
-  if (id !== editorId) {
-    return res.status(403).json({ ok: false, error: "Forbidden - you don't have the edit lock" });
-  }
+  
+  // Validate state regardless of lock status
   const err = validateState(req.body);
   if (err) {
     return res.status(400).json({ ok: false, error: err });
   }
+
   const { spots, models, version } = req.body;
   const state = await writeState({ spots, models, version });
   
-  // Broadcast updated state to all clients
-  for (const client of clients) {
-    try {
-      client.write("data: " + JSON.stringify({ type: 'state_update', ...state }) + "\n\n");
-    } catch (e) {
-      clients.delete(client);
-    }
+  // Always broadcast updated state to all clients
+  broadcastStateUpdate(state);
+
+  // If the editor ID doesn't match, return 403, but the state has already been updated and broadcast.
+  if (id !== editorId) {
+    return res.status(403).json({ ok: false, error: "Forbidden - you don't have the edit lock" });
   }
+
   res.json({ ok: true, state });
 }
 
@@ -210,3 +221,4 @@ app.get("*", (_req, res) => {
 
 const port = process.env.PORT || 3000;
 app.listen(port, "0.0.0.0", () => console.log("State server listening on " + port));
+
