@@ -208,23 +208,40 @@ async function saveState() {
 }
 
 function updateFromServer(state) {
-  // Handle lock status messages
+  // Handle lock status updates
   if (state.type === 'lock_status') {
     updateLockStatusDisplay(state.locked, state.editorId);
     return;
   }
 
-  // Handle regular state updates
-  const spots = state?.spots || {};
-  layout.forEach((s) => {
-    const saved = spots[s.id];
-    if (saved) {
-      s.status = saved.status || "available";
-      s.vehicle = saved.vehicle || null;
-    }
-  });
-  layout.forEach(renderSpotColor);
-  refreshRightPanel();
+  // Handle state updates
+  if (state.type === 'state_update' && state.spots) {
+    const spots = state.spots || {};
+    layout.forEach((s) => {
+      const saved = spots[s.id];
+      if (saved) {
+        s.status = saved.status || "available";
+        s.vehicle = saved.vehicle || null;
+      }
+    });
+    layout.forEach(renderSpotColor);
+    refreshRightPanel();
+    return;
+  }
+
+  // Handle legacy format (no type field)
+  if (state.spots) {
+    const spots = state.spots || {};
+    layout.forEach((s) => {
+      const saved = spots[s.id];
+      if (saved) {
+        s.status = saved.status || "available";
+        s.vehicle = saved.vehicle || null;
+      }
+    });
+    layout.forEach(renderSpotColor);
+    refreshRightPanel();
+  }
 }
 
 /* =========================================================
@@ -444,7 +461,7 @@ async function openWidget(spot, isEditMode = false) {
     const locked = await acquireLock();
     if (!locked) {
       editing = false;
-      alert('Another editor is currently making changes. Opening in read-only mode.');
+      alert("Another editor is currently making changes. Opening in read-only mode.");
     } else {
       lockHeld = true;
     }
@@ -484,8 +501,8 @@ async function openWidget(spot, isEditMode = false) {
   `;
 
   if (!disabled) {
-    const modelSelect = formFields.querySelector('select[name="Car Model"]');
-    const variantSelect = formFields.querySelector('select[name="Model Variant"]');
+    const modelSelect = formFields.querySelector("select[name=\"Car Model\"]");
+    const variantSelect = formFields.querySelector("select[name=\"Model Variant\"]");
     modelSelect.addEventListener("change", () => {
       const newModel = modelSelect.value;
       const newVariants = getVariantsFor(newModel);
