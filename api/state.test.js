@@ -31,7 +31,7 @@ test('PUT invalid JSON returns 400', async () => {
   process.env.UPSTASH_REDIS_REST_URL = 'url';
   process.env.UPSTASH_REDIS_REST_TOKEN = 'token';
 
-  const req = { method: 'PUT', body: '{invalid}' };
+  const req = { method: 'PUT', body: '{invalid}', headers: { 'x-editor-id': null } };
   const res = createRes();
 
   await handler(req, res);
@@ -88,7 +88,7 @@ test('PUT persists state and returns ok', async () => {
   try {
     const payload = { spots: {}, models: {}, version: 1 };
     const resPut = createRes();
-    await handler({ method: 'PUT', body: payload }, resPut);
+    await handler({ method: 'PUT', body: payload, headers: { 'x-editor-id': null } }, resPut);
     assert.equal(resPut.statusCode, 200);
     assert.deepEqual(resPut.body, { ok: true });
 
@@ -109,7 +109,7 @@ test('PUT invalid state returns 400', async () => {
 
   try {
     const res = createRes();
-    await handler({ method: 'PUT', body: {} }, res);
+    await handler({ method: 'PUT', body: {}, headers: { 'x-editor-id': null } }, res);
     assert.equal(res.statusCode, 400);
     assert.deepEqual(res.body, { error: 'version must be a number' });
   } finally {
@@ -144,7 +144,7 @@ test('Upstash PUT failure returns 500', async () => {
   try {
     const res = createRes();
     const payload = { spots: {}, models: {}, version: 1 };
-    await handler({ method: 'PUT', body: payload }, res);
+    await handler({ method: 'PUT', body: payload, headers: { 'x-editor-id': null } }, res);
     assert.equal(res.statusCode, 500);
     assert.deepEqual(res.body, { error: 'Server error' });
   } finally {

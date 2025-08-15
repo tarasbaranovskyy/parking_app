@@ -81,7 +81,13 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const FILE = path.join(__dirname, "state.json");
 
-// ensure state file exists
+// Upstash Redis configuration (optional)
+const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
+const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const REDIS_KEY = "parking_app_state_v1";
+const useRedis = REDIS_URL && REDIS_TOKEN;
+
+// ensure state file exists for local fallback
 if (!fs.existsSync(FILE)) {
   fs.writeFileSync(
     FILE,
@@ -99,7 +105,28 @@ if (!fs.existsSync(FILE)) {
   );
 }
 
-function readState() {
+async function redis(cmd, ...args) {
+  const r = await fetch(REDIS_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${REDIS_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify([cmd, ...args]),
+  });
+  if (!r.ok) throw new Error(`Upstash ${cmd} failed: ${r.status}`);
+  return r.json();
+}
+
+async function readState() {
+  if (useRedis) {
+    try {
+      const { result } = await redis("GET", REDIS_KEY);
+      if (result) return JSON.parse(result);
+    } catch (e) {
+      console.warn("Redis GET failed, falling back to file:", e);
+    }
+  }
   try {
     return JSON.parse(fs.readFileSync(FILE, "utf8"));
   } catch {
@@ -118,13 +145,22 @@ async function writeState(obj) {
     updatedAt: new Date().toISOString(),
     version: (obj.version || 0) + 1,
   };
-  await fs.promises.writeFile(FILE, JSON.stringify(state, null, 2), "utf8");
+  if (useRedis) {
+    try {
+      await redis("SET", REDIS_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.warn("Redis SET failed, writing to file:", e);
+      await fs.promises.writeFile(FILE, JSON.stringify(state, null, 2), "utf8");
+    }
+  } else {
+    await fs.promises.writeFile(FILE, JSON.stringify(state, null, 2), "utf8");
+  }
   return state;
 }
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
-function eventsHandler(req, res) {
+async function eventsHandler(req, res) {
   res.set({
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
@@ -134,7 +170,7 @@ function eventsHandler(req, res) {
   clients.add(res);
   
   // Send current state and lock status immediately
-  const currentState = readState();
+  const currentState = await readState();
   res.write("data: " + JSON.stringify({ type: 'state_update', ...currentState }) + "\n\n");
   
   // Send current lock status
@@ -151,9 +187,10 @@ function eventsHandler(req, res) {
   });
 }
 
-function getStateHandler(_req, res) {
+async function getStateHandler(_req, res) {
   res.set("Cache-Control", "no-store");
-  res.json(readState());
+  const state = await readState();
+  res.json(state);
 }
 
 async function putStateHandler(req, res) {
