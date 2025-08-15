@@ -124,7 +124,7 @@ function eventsHandler(req, res) {
   
   // Send current state and lock status immediately
   const currentState = readState();
-  res.write("data: " + JSON.stringify(currentState) + "\n\n");
+  res.write("data: " + JSON.stringify({ type: 'state_update', ...currentState }) + "\n\n");
   
   // Send current lock status
   const lockStatus = { 
@@ -160,7 +160,7 @@ async function putStateHandler(req, res) {
   // Broadcast updated state to all clients
   for (const client of clients) {
     try {
-      client.write("data: " + JSON.stringify(state) + "\n\n");
+      client.write("data: " + JSON.stringify({ type: 'state_update', ...state }) + "\n\n");
     } catch (e) {
       clients.delete(client);
     }
