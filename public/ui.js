@@ -1,4 +1,4 @@
-import { remoteLoad, remoteSave, subscribe, acquireLock, releaseLock } from './remote.js';
+import { remoteLoad, remoteSave, subscribe } from './remote.js';
 import { canvas, layout, spotElMap, initLayout, renderSpotColor } from './layout.js';
 
 subscribe(updateFromServer);
@@ -104,47 +104,30 @@ function mergeModels(local, remote) {
 }
 
 async function loadState() {
-  // Try remote first (when enabled)
   const s = await remoteLoad();
-  if (s) {
-    // spots
-    layout.forEach((spot) => {
-      const saved = s.spots?.[spot.id];
-      if (saved) {
-        spot.status = saved.status || "available";
-        spot.vehicle = saved.vehicle || null;
-      }
-    });
+  if (!s) return;
 
-    // models: MERGE server with locally-seeded list (not replace)
-    if (s.models && typeof s.models === "object") {
-      modelStore = mergeModels(modelStore, s.models);
+  // spots
+  layout.forEach((spot) => {
+    const saved = s.spots?.[spot.id];
+    if (saved) {
+      spot.status = saved.status || "available";
+      spot.vehicle = saved.vehicle || null;
     }
+  });
 
-    // push merged list back to server once so everyone shares it (best-effort)
-    await remoteSave({ spots: s.spots || {}, models: modelStore });
-    // also mirror locally for fast offline reloads
-    safeSet(STORAGE_KEY, s.spots || {});
-    return;
+  // models: MERGE server with locally-seeded list (not replace)
+  if (s.models && typeof s.models === "object") {
+    modelStore = mergeModels(modelStore, s.models);
   }
 
-  // Fallback: local-only
-  try {
-    const snapshot = safeGet(STORAGE_KEY);
-    if (!snapshot) return;
-    layout.forEach((sp) => {
-      const saved = snapshot[sp.id];
-      if (saved) {
-        sp.status = saved.status || "available";
-        sp.vehicle = saved.vehicle || null;
-      }
-    });
-  } catch (e) {
-    console.warn("local load failed:", e);
-  }
+  // push merged list back to server once so everyone shares it (best-effort)
+  remoteSave({ spots: s.spots || {}, models: modelStore });
+  // also mirror locally for fast offline reloads
+  safeSet(STORAGE_KEY, s.spots || {});
 }
 
-async function saveState() {
+function saveState() {
   const spots = {};
   layout.forEach((s) => {
     spots[s.id] = {
@@ -154,14 +137,9 @@ async function saveState() {
   });
 
   const payload = { spots, models: modelStore };
-
   // Try remote; also mirror local so offline reload shows latest saved state
-  const ok = await remoteSave(payload);
+  remoteSave(payload);
   try { safeSet(STORAGE_KEY, spots); } catch (e) { console.warn("local mirror failed:", e); }
-
-  if (!ok) {
-    console.warn("Remote save not available; using local only this time.");
-  }
 }
 
 function updateFromServer(state) {
@@ -375,30 +353,12 @@ function setActions({
 }
 
 /* =============== OPEN/CLOSE WIDGET =============== */
-let lockHeld = false;
-
-async function releaseLockIfHeld() {
-  if (lockHeld) {
-    lockHeld = false;
-    try { await releaseLock(); } catch {}
-  }
-}
-
 async function openWidget(spot, isEditMode = false) {
   currentSpot = spot;
   widget.classList.remove("hidden");
 
   const isOccupied = spot.status === "occupied";
-  let editing = isEditMode || !isOccupied;
-  if (editing) {
-    const locked = await acquireLock();
-    if (!locked) {
-      editing = false;
-      alert('Another editor is currently making changes. Opening in read-only mode.');
-    } else {
-      lockHeld = true;
-    }
-  }
+  const editing = isEditMode || !isOccupied;
 
   const v = spot.vehicle || {};
   const disabled = isOccupied && !editing;
@@ -456,13 +416,11 @@ async function openWidget(spot, isEditMode = false) {
 function closeWidget() {
   widget.classList.add("hidden");
   currentSpot = null;
-  releaseLockIfHeld();
 }
 function enableEdit() {
   openWidget(currentSpot, true);
 }
 function cancelEdit() {
-  releaseLockIfHeld();
   openWidget(currentSpot, false);
 }
 
@@ -494,7 +452,6 @@ function saveSpotData() {
   saveState();
   refreshRightPanel();
   applyHighlights();
-  releaseLockIfHeld();
   closeWidget();
 }
 function clearSpotData() {
@@ -506,7 +463,6 @@ function clearSpotData() {
   saveState();
   refreshRightPanel();
   applyHighlights();
-  releaseLockIfHeld();
   closeWidget();
 }
 
@@ -723,6 +679,4 @@ window.addEventListener("load", () => {
   initRightToolbar();
 });
 
-window.addEventListener('beforeunload', () => {
-  releaseLockIfHeld();
-});
+// no special handling needed on unload

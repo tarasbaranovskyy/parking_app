@@ -26,50 +26,78 @@ console.log("Parking App build", "sync-2025-08-13", {
   ALWAYS_REMOTE,
 });
 
-const id = crypto.randomUUID();
+const LOCAL_KEY = 'parking_state_backup';
+let cachedVersion = null;
+let saveTimer;
+let retryTimer;
 
-export async function acquireLock() {
-  const r = await fetch('/api/lock', {
-    method: 'POST',
-    body: JSON.stringify({ id }),
-    headers: { 'Content-Type': 'application/json' }
-  });
-  const { locked } = await r.json();
-  return locked;
-}
-
-export async function releaseLock() {
-  await fetch(`/api/lock/${id}`, { method: 'DELETE' });
-}
-
-export function getEditorId() { return id; }
+const banner = document.getElementById('offline-banner');
+function showBanner() { if (banner) banner.style.display = 'block'; }
+function hideBanner() { if (banner) banner.style.display = 'none'; }
 
 export async function remoteLoad() {
   if (!REMOTE_ENABLED) return null;
   try {
-    const r = await fetch(STATE_PATH, { cache: "no-store" });
+    const r = await fetch(STATE_PATH, { cache: 'no-store' });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return (await r.json()) || {};
+    const { data, version } = await r.json();
+    cachedVersion = version;
+    hideBanner();
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(data)); } catch {}
+    return data || {};
   } catch (e) {
-    console.warn("Remote load disabled this session:", e);
-    return null;
+    showBanner();
+    try {
+      const raw = localStorage.getItem(LOCAL_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
   }
 }
 
-export async function remoteSave(payload) {
-  if (!REMOTE_ENABLED) return false;
+function scheduleRetry(data) {
+  if (retryTimer) return;
+  retryTimer = setInterval(() => {
+    attemptSave(data);
+  }, 5000);
+}
+
+async function attemptSave(data, retry = false) {
   try {
     const r = await fetch(STATE_PATH, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", 'x-editor-id': getEditorId() },
-      body: JSON.stringify(payload),
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'If-Match-Version': cachedVersion ?? ''
+      },
+      body: JSON.stringify({ data })
     });
+    if (r.status === 409 && !retry) {
+      await remoteLoad();
+      return attemptSave(data, true);
+    }
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const { version } = await r.json();
+    cachedVersion = version;
+    hideBanner();
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(data)); } catch {}
+    if (retryTimer) { clearInterval(retryTimer); retryTimer = null; }
     return true;
   } catch (e) {
-    console.warn("Remote save failed; staying local:", e);
+    showBanner();
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(data)); } catch {}
+    scheduleRetry(data);
     return false;
   }
+}
+
+export function remoteSave(data) {
+  if (!REMOTE_ENABLED) return;
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    attemptSave(data);
+  }, 300);
 }
 
 export function subscribe(onMessage) {
