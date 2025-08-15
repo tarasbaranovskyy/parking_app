@@ -208,14 +208,18 @@ async function saveState() {
 }
 
 function updateFromServer(state) {
+  console.log('updateFromServer called with:', state);
+  
   // Handle lock status updates
   if (state.type === 'lock_status') {
+    console.log('Processing lock status update:', state);
     updateLockStatusDisplay(state.locked, state.editorId);
     return;
   }
 
   // Handle state updates
   if (state.type === 'state_update' && state.spots) {
+    console.log('Processing state update:', state);
     const spots = state.spots || {};
     layout.forEach((s) => {
       const saved = spots[s.id];
@@ -231,6 +235,7 @@ function updateFromServer(state) {
 
   // Handle legacy format (no type field)
   if (state.spots) {
+    console.log('Processing legacy state update:', state);
     const spots = state.spots || {};
     layout.forEach((s) => {
       const saved = spots[s.id];
@@ -750,3 +755,4 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 });
+
