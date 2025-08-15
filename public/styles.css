@@ -1,285 +1,271 @@
-/* General styles */
+/* General Page Style */
 body {
-  font-family: sans-serif;
   margin: 0;
-  overflow: hidden; /* Prevent scrollbars from canvas */
-  display: flex;
-  height: 100vh;
-  background-color: #f0f0f0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f3f4f6;
+  overflow: hidden;
 }
 
-/* Canvas container for zoom and drag */
+/* Zoom Controls */
+.zoom-controls {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 1000;
+}
+
+.zoom-controls button {
+  background: #ffffff;
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  font-size: 18px;
+  margin: 0 4px;
+  cursor: pointer;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Map Wrapper */
 #canvas-container {
-  flex-grow: 1;
-  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  overflow: scroll;
   position: relative;
   cursor: grab;
+  margin-right: 280px; /* Space for the fixed right toolbar */
 }
 
 #canvas-container.grabbing {
   cursor: grabbing;
+  user-select: none;
 }
 
-/* Parking lot canvas */
+/* Parking Canvas */
 #parking-canvas {
-  display: block;
-  background-color: #fff;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  transform-origin: 0 0;
-  transition: transform 0.1s ease-out;
+  position: relative;
+  width: 4000px;
+  height: 4000px;
+  transform-origin: top left;
+  transition: transform 0.2s ease;
 }
 
-/* Zoom controls */
-#zoom-controls {
+/* Parking Spot Style */
+.parking-spot {
+  width: 48px;
+  height: 80px;
   position: absolute;
-  top: 10px;
-  left: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  z-index: 100;
+  background-color: #10b981;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
 }
 
-#zoom-controls button {
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  font-size: 16px;
-  cursor: pointer;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+.parking-spot:hover {
+  transform: scale(1.05);
 }
 
-#zoom-controls button:hover {
-  background-color: #45a049;
+.parking-spot.horizontal {
+  width: 80px;
+  height: 48px;
 }
 
-/* Info widget */
-#info-widget {
+.parking-spot.highlight {
+  outline: 3px solid #f59e0b;
+  box-shadow: 0 0 0 3px #f59e0b66;
+}
+
+/* Tilted block container */
+.parking-block {
   position: absolute;
+  transform-origin: top left;
+}
+
+/* Info Widget Styling */
+.info-widget {
+  position: fixed;
   top: 50%;
   left: 50%;
+  width: 360px;
   transform: translate(-50%, -50%);
-  background-color: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  z-index: 1000;
-  width: 300px;
-  max-width: 90%;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  font-family: "Segoe UI", Roboto, sans-serif;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
-#info-widget.hidden {
+.info-widget.hidden {
   display: none;
 }
 
-#info-widget h3 {
-  margin-top: 0;
-  color: #333;
+.widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
 }
 
-#info-widget label {
-  display: block;
-  margin-bottom: 10px;
-  font-weight: bold;
-  color: #555;
+.widget-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
 }
 
-#info-widget input[type="text"],
-#info-widget select {
-  width: 100%;
-  padding: 8px;
-  margin-top: 4px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  box-sizing: border-box;
+.widget-header button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
 }
 
-#info-widget input[type="text"]:read-only {
-  background-color: #f5f5f5;
-  color: #777;
+#form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+#form-fields label {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  color: #374151;
+}
+
+#form-fields input,
+#form-fields select {
+  padding: 10px 12px;
+  margin-top: 6px;
+  font-size: 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f9fafb;
+  outline: none;
+}
+
+#form-fields input:read-only,
+#form-fields select:disabled {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+#form-fields button {
+  align-self: flex-end;
+  margin-top: 8px;
+  padding: 8px 14px;
+  font-size: 14px;
+  background-color: #e0e7ff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #3730a3;
+  transition: background-color 0.2s ease;
+}
+
+#form-fields button:hover {
+  background-color: #c7d2fe;
 }
 
 .widget-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 12px;
   margin-top: 20px;
 }
 
 .widget-actions button {
-  padding: 10px 15px;
+  padding: 10px 18px;
+  font-size: 15px;
+  font-weight: 500;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 14px;
+  transition: all 0.2s ease;
 }
 
 #save-btn {
-  background-color: #007bff;
+  background-color: #3b82f6;
   color: white;
 }
 
 #save-btn:hover {
-  background-color: #0056b3;
+  background-color: #2563eb;
 }
 
-#cancel-btn,
-#clear-btn {
-  background-color: #6c757d;
-  color: white;
+#cancel-btn {
+  background-color: #e5e7eb;
+  color: #374151;
 }
 
-#cancel-btn:hover,
-#clear-btn:hover {
-  background-color: #5a6268;
+#cancel-btn:hover {
+  background-color: #d1d5db;
 }
 
-#widget-close-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  color: #aaa;
-}
-
-#widget-close-btn:hover {
-  color: #333;
-}
-
-/* Right toolbar */
-#right-toolbar {
-  width: 280px;
-  background-color: #f8f8f8;
-  border-left: 1px solid #eee;
-  padding: 20px;
+/* Right Toolbar - Fixed and unaffected by zoom */
+.right-toolbar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 350px; /* Fixed width */
+  height: 100vh; /* Fixed height */
+  background: #ffffff;
+  border-left: 1px solid #e5e7eb;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.06);
+  padding: 16px;
   overflow-y: auto;
-  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.05);
+  z-index: 1001;
+  flex-shrink: 0;
+  transform: none !important; /* Ensure toolbar doesn't scale */
 }
 
-#right-toolbar h3,
-#right-toolbar h4 {
-  color: #333;
-  margin-top: 0;
-  margin-bottom: 15px;
+/* Right Toolbar Sections */
+.right-toolbar .rt-section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed #e5e7eb;
 }
 
-.rt-section {
-  margin-bottom: 25px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #eee;
+.right-toolbar h4 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  color: #111827;
 }
 
-.rt-section:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-  padding-bottom: 0;
-}
-
-#vin-search {
+.right-toolbar select,
+.right-toolbar input,
+.right-toolbar button {
   width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  box-sizing: border-box;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f9fafb;
+  margin-bottom: 10px;
+  cursor: pointer;
 }
 
-.stat-line {
+.right-toolbar button {
+  background: #e0e7ff;
+  color: #3730a3;
+  border: none;
+}
+#vin-search {
+  width: 325px; /* or whatever size you want */
+}
+
+/* Statistics Layout */
+.right-toolbar .stat-line {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 5px;
-  color: #555;
-}
-
-.stat-line strong {
-  color: #333;
-}
-
-#model-counts .stat-line {
-  font-size: 0.9em;
-}
-
-/* Filters */
-#model-filter,
-#variant-filter,
-#tire-filter {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  box-sizing: border-box;
-  margin-bottom: 10px;
-}
-
-#clear-highlights-btn {
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
+  padding: 6px 0;
   font-size: 14px;
-  cursor: pointer;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  width: 100%;
-  box-sizing: border-box;
+  color: #374151;
 }
-
-#clear-highlights-btn:hover {
-  background-color: #c82333;
-}
-
-/* Lock Status Indicator */
-#lock-status {
-  position: fixed;
-  bottom: 15px;
-  left: 15px;
-  background-color: #f0f0f0;
-  border: 1px solid #ccc;
-  padding: 8px 12px;
-  border-radius: 20px;
-  font-size: 0.9em;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-}
-
-#lock-status.editing {
-  background-color: #d4edda; /* Light green */
-  border-color: #28a745; /* Green */
-  color: #155724;
-}
-
-#lock-status.locked {
-  background-color: #f8d7da; /* Light red */
-  border-color: #dc3545; /* Red */
-  color: #721c24;
-}
-
-#lock-status.unlocked {
-  background-color: #e2e3e5; /* Light gray */
-  border-color: #6c757d; /* Gray */
-  color: #383d41;
-}
-
-#lock-icon {
-  font-size: 1.2em;
-}
-
-#lock-text {
-  font-weight: bold;
+ h2{
+ text-align:center;
 }
