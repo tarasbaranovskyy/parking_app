@@ -32,6 +32,16 @@ UPSTASH_REDIS_REST_TOKEN=your-token-here
 
 These variables enable the app to store and retrieve state from Redis, ensuring data survives across sessions and devices.
 
+### KV Environment Variables
+
+For additional state storage, copy `.env.local.example` to `.env.local` and set the following values:
+
+- `KV_REST_API_URL`
+- `KV_REST_API_TOKEN`
+- `KV_URL`
+
+Do not commit `.env.local` or any secrets to version control.
+
 ## How does this work?
 
 We run `yarn start` to start an HTTP server that runs on http://localhost:8080. You can open new or existing devtools with the + button next to the devtool tabs.
