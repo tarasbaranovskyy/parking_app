@@ -1,11 +1,6 @@
-import { remoteLoad, remoteSave, subscribe, acquireLock, releaseLock, getEditorId } from './remote.js';
+import { remoteLoad, remoteSave, subscribe, acquireLock, releaseLock } from './remote.js';
 import { canvas, layout, spotElMap, initLayout, renderSpotColor } from './layout.js';
 
-// Lock status tracking
-let isEditing = false;
-let lockStatusElement = null;
-
-// Subscribe to server updates including lock status
 subscribe(updateFromServer);
 
 function safeSet(key, value) {
@@ -22,44 +17,6 @@ function safeGet(key) {
   }
 }
 
-// Create lock status indicator
-function createLockStatusIndicator() {
-  if (lockStatusElement) return;
-  
-  lockStatusElement = document.createElement('div');
-  lockStatusElement.id = 'lock-status';
-  lockStatusElement.className = 'lock-status';
-  lockStatusElement.innerHTML = `
-    <span id="lock-icon">👁️</span>
-    <span id="lock-text">Read Only</span>
-  `;
-  document.body.appendChild(lockStatusElement);
-}
-
-// Update lock status display
-function updateLockStatusDisplay(locked, editorId) {
-  if (!lockStatusElement) createLockStatusIndicator();
-  
-  const icon = document.getElementById('lock-icon');
-  const text = document.getElementById('lock-text');
-  
-  if (locked && editorId === getEditorId()) {
-    lockStatusElement.className = 'lock-status editing';
-    icon.textContent = '✏️';
-    text.textContent = 'Editing';
-    isEditing = true;
-  } else if (locked) {
-    lockStatusElement.className = 'lock-status locked';
-    icon.textContent = '🔒';
-    text.textContent = 'Someone else is editing';
-    isEditing = false;
-  } else {
-    lockStatusElement.className = 'lock-status unlocked';
-    icon.textContent = '👁️';
-    text.textContent = 'Read Only';
-    isEditing = false;
-  }
-}
 
 /* =============== ZOOM & DRAG =============== */
 let zoom = 1;
@@ -193,7 +150,7 @@ async function saveState() {
     spots[s.id] = {
       status: s.status,
       vehicle: s.vehicle ? { ...s.vehicle } : null,
-    };
+}
   });
 
   const payload = { spots, models: modelStore };
@@ -208,45 +165,16 @@ async function saveState() {
 }
 
 function updateFromServer(state) {
-  console.log('updateFromServer called with:', state);
-  
-  // Handle lock status updates
-  if (state.type === 'lock_status') {
-    console.log('Processing lock status update:', state);
-    updateLockStatusDisplay(state.locked, state.editorId);
-    return;
-  }
-
-  // Handle state updates
-  if (state.type === 'state_update' && state.spots) {
-    console.log('Processing state update:', state);
-    const spots = state.spots || {};
-    layout.forEach((s) => {
-      const saved = spots[s.id];
-      if (saved) {
-        s.status = saved.status || "available";
-        s.vehicle = saved.vehicle || null;
-      }
-    });
-    layout.forEach(renderSpotColor);
-    refreshRightPanel();
-    return;
-  }
-
-  // Handle legacy format (no type field)
-  if (state.spots) {
-    console.log('Processing legacy state update:', state);
-    const spots = state.spots || {};
-    layout.forEach((s) => {
-      const saved = spots[s.id];
-      if (saved) {
-        s.status = saved.status || "available";
-        s.vehicle = saved.vehicle || null;
-      }
-    });
-    layout.forEach(renderSpotColor);
-    refreshRightPanel();
-  }
+  const spots = state?.spots || {};
+  layout.forEach((s) => {
+    const saved = spots[s.id];
+    if (saved) {
+      s.status = saved.status || "available";
+      s.vehicle = saved.vehicle || null;
+    }
+  });
+  layout.forEach(renderSpotColor);
+  refreshRightPanel();
 }
 
 /* =========================================================
@@ -287,7 +215,7 @@ function seedDefaultModels() {
     Dodge: [],
     Nissan: [],
     Mitsubishi: [],
-  };
+}
   saveModelStore();
 }
 function getModelNames() {
@@ -466,7 +394,7 @@ async function openWidget(spot, isEditMode = false) {
     const locked = await acquireLock();
     if (!locked) {
       editing = false;
-      alert("Another editor is currently making changes. Opening in read-only mode.");
+      alert('Another editor is currently making changes. Opening in read-only mode.');
     } else {
       lockHeld = true;
     }
@@ -506,8 +434,8 @@ async function openWidget(spot, isEditMode = false) {
   `;
 
   if (!disabled) {
-    const modelSelect = formFields.querySelector("select[name=\"Car Model\"]");
-    const variantSelect = formFields.querySelector("select[name=\"Model Variant\"]");
+    const modelSelect = formFields.querySelector('select[name="Car Model"]');
+    const variantSelect = formFields.querySelector('select[name="Model Variant"]');
     modelSelect.addEventListener("change", () => {
       const newModel = modelSelect.value;
       const newVariants = getVariantsFor(newModel);
@@ -553,7 +481,7 @@ function saveSpotData() {
     tires: data["Tires"],
     vin: data["VIN Number"],
     plate: data["Immatriculation Plate"],
-  };
+}
   currentSpot.status = "occupied";
   renderSpotColor(currentSpot);
 
@@ -569,12 +497,12 @@ function saveSpotData() {
   releaseLockIfHeld();
   closeWidget();
 }
-
 function clearSpotData() {
   if (!currentSpot) return;
-  currentSpot.status = "available";
   currentSpot.vehicle = null;
+  currentSpot.status = "available";
   renderSpotColor(currentSpot);
+
   saveState();
   refreshRightPanel();
   applyHighlights();
@@ -582,177 +510,219 @@ function clearSpotData() {
   closeWidget();
 }
 
-/* =============== RIGHT PANEL FILTERS =============== */
-let modelFilter, variantFilter, tireFilter;
+/* =============== TOOLBAR & STATS =============== */
+const modelFilter = document.getElementById("model-filter");
+const clearHighlightBtn = document.getElementById("clear-highlights-btn");
+const statTotal = document.getElementById("stat-total");
+const statOccupied = document.getElementById("stat-occupied");
+const statAvailable = document.getElementById("stat-available");
+const modelCountsContainer = document.getElementById("model-counts");
+const vinInput = document.getElementById("vin-search");
 
-function refreshRightPanel() {
-  const totalSpots = layout.length;
-  const occupiedSpots = layout.filter((s) => s.status === "occupied").length;
-  const availableSpots = totalSpots - occupiedSpots;
+let variantFilter = null, tireFilter = null, tireStatsSection = null, statWinterEl = null, statSummerEl = null;
 
-  document.getElementById("stat-total").textContent = totalSpots;
-  document.getElementById("stat-occupied").textContent = occupiedSpots;
-  document.getElementById("stat-available").textContent = availableSpots;
+function initInjectedControls() {
+  // Variant filter under model filter
+  variantFilter = document.createElement("select");
+  variantFilter.id = "variant-filter";
+  variantFilter.disabled = true;
+  variantFilter.style.marginTop = "8px";
+  modelFilter.insertAdjacentElement("afterend", variantFilter);
 
-  // Model counts
-  const modelCounts = {};
-  layout.forEach((spot) => {
-    if (spot.status === "occupied" && spot.vehicle?.model) {
-      const model = spot.vehicle.model;
-      modelCounts[model] = (modelCounts[model] || 0) + 1;
-    }
-  });
-
-  const modelCountsDiv = document.getElementById("model-counts");
-  modelCountsDiv.innerHTML = Object.entries(modelCounts)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([model, count]) => `<div class="stat-line"><span>${model}</span><strong>${count}</strong></div>`)
-    .join("");
-
-  // Refresh model filter dropdown
-  if (modelFilter) {
-    const currentVal = modelFilter.value;
-    const uniqueModels = [...new Set(layout.filter(s => s.status === "occupied" && s.vehicle?.model).map(s => s.vehicle.model))].sort();
-    modelFilter.innerHTML = `<option value="">All Models</option>` + uniqueModels.map(m => `<option value="${m}">${m}</option>`).join("");
-    if (uniqueModels.includes(currentVal)) modelFilter.value = currentVal;
-  }
-}
-
-function onModelsChanged() {
-  populateQuickModelSelect();
-  refreshRightPanel();
-}
-
-/* =============== VIN SEARCH =============== */
-function setupVINSearch() {
-  const vinInput = document.getElementById("vin-search");
-  if (!vinInput) return;
-
-  vinInput.addEventListener("input", () => {
-    const query = vinInput.value.trim().toLowerCase();
-    if (!query) return;
-
-    const match = layout.find((spot) =>
-      spot.status === "occupied" &&
-      spot.vehicle?.vin &&
-      spot.vehicle.vin.toLowerCase().includes(query)
-    );
-
-    if (match) {
-      flashVINSpot(match.id);
-      // Scroll to the spot
-      const el = spotElMap.get(match.id);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  });
-}
-
-/* =============== SETUP FILTERS =============== */
-function setupFilters() {
-  modelFilter = document.getElementById("model-filter");
-  if (!modelFilter) return;
-
-  // Create variant and tire filters if they don't exist
+  // Tire filter section
   const rightToolbar = document.getElementById("right-toolbar");
-  const highlightSection = rightToolbar.querySelector("div.rt-section:nth-child(2)");
-  
-  if (!document.getElementById("variant-filter")) {
-    const variantLabel = document.createElement("h4");
-    variantLabel.textContent = "Highlight by Variant";
-    const variantSelect = document.createElement("select");
-    variantSelect.id = "variant-filter";
-    variantSelect.innerHTML = '<option value="">All Variants</option>';
-    highlightSection.appendChild(variantLabel);
-    highlightSection.appendChild(variantSelect);
-    variantFilter = variantSelect;
-  }
+  const tireFilterSection = document.createElement("div");
+  tireFilterSection.className = "rt-section";
+  tireFilterSection.innerHTML = `<h4>Highlight by Tires</h4>`;
+  tireFilter = document.createElement("select");
+  tireFilter.id = "tire-filter";
+  tireFilter.innerHTML = `<option value="">— Select tires —</option>${["Summer","Winter"].map((t) => `<option>${t}</option>`).join("")}`;
+  tireFilterSection.appendChild(tireFilter);
+  rightToolbar.insertBefore(
+    tireFilterSection,
+    rightToolbar.querySelector(".rt-section:nth-of-type(3)")
+  );
+}
 
-  if (!document.getElementById("tire-filter")) {
-    const tireLabel = document.createElement("h4");
-    tireLabel.textContent = "Highlight by Tires";
-    const tireSelect = document.createElement("select");
-    tireSelect.id = "tire-filter";
-    tireSelect.innerHTML = '<option value="">All Tires</option>' + tireTypes.map(t => `<option value="${t}">${t}</option>`).join("");
-    highlightSection.appendChild(tireLabel);
-    highlightSection.appendChild(tireSelect);
-    tireFilter = tireSelect;
-  }
+function initTireStatsSection() {
+  const rightToolbar = document.getElementById("right-toolbar");
+  tireStatsSection = document.createElement("div");
+  tireStatsSection.className = "rt-section";
+  tireStatsSection.innerHTML = `
+    <h4>Tire Statistics</h4>
+    <div class="stat-line"><span>Winter</span><strong id="stat-winter">0</strong></div>
+    <div class="stat-line"><span>Summer</span><strong id="stat-summer">0</strong></div>`;
+  rightToolbar.appendChild(tireStatsSection);
+  statWinterEl = tireStatsSection.querySelector("#stat-winter");
+  statSummerEl = tireStatsSection.querySelector("#stat-summer");
+}
 
-  // Event listeners
-  modelFilter.addEventListener("change", () => {
-    const selectedModel = modelFilter.value;
-    if (variantFilter) {
-      if (selectedModel) {
-        const variants = [...new Set(layout.filter(s => s.status === "occupied" && s.vehicle?.model === selectedModel && s.vehicle?.variant).map(s => s.vehicle.variant))].sort();
-        variantFilter.innerHTML = '<option value="">All Variants</option>' + variants.map(v => `<option value="${v}">${v}</option>`).join("");
-        variantFilter.disabled = false;
-      } else {
-        variantFilter.innerHTML = '<option value="">All Variants</option>';
-        variantFilter.disabled = true;
-      }
+/* =============== VIN search (blue flash) =============== */
+function normalizeVIN(v) { return (v || "").toString().trim().toUpperCase(); }
+function findSpotByVIN(vin) {
+  const needle = normalizeVIN(vin);
+  if (!needle) return null;
+  return layout.find(
+    (s) => s.status === "occupied" && normalizeVIN(s.vehicle?.vin) === needle
+  ) || null;
+}
+function scrollSpotIntoView(spotId) {
+  const el = spotElMap.get(spotId);
+  if (!el) return;
+  try {
+    el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+  } catch {
+    const rect = el.getBoundingClientRect();
+    wrapper.scrollLeft += rect.left - wrapper.clientWidth / 2;
+    wrapper.scrollTop += rect.top - wrapper.clientHeight / 2;
+  }
+}
+function handleVINSearch() {
+  const vin = vinInput.value;
+  const spot = findSpotByVIN(vin);
+  if (!spot) {
+    vinInput.style.borderColor = "#ef4444";
+    setTimeout(() => (vinInput.style.borderColor = ""), 800);
+    return;
+  }
+  scrollSpotIntoView(spot.id);
+  flashVINSpot(spot.id, 3500);
+}
+vinInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") handleVINSearch();
+});
+
+/* =============== STATS & COUNTS =============== */
+function recomputeStats() {
+  const total = layout.length;
+  const occupied = layout.filter((s) => s.status === "occupied").length;
+  const available = total - occupied;
+  statTotal.textContent = total;
+  statOccupied.textContent = occupied;
+  statAvailable.textContent = available;
+}
+function updateTireStats() {
+  const tireCounts = { Summer: 0, Winter: 0 };
+  layout.forEach((s) => {
+    if (s.status === "occupied" && s.vehicle?.tires) {
+      if (s.vehicle.tires === "Summer") tireCounts.Summer++;
+      if (s.vehicle.tires === "Winter") tireCounts.Winter++;
     }
-    applyHighlights();
   });
+  if (statWinterEl) statWinterEl.textContent = tireCounts.Winter;
+  if (statSummerEl) statSummerEl.textContent = tireCounts.Summer;
+}
+function renderModelCounts() {
+  const counts = {};
+  layout.forEach((s) => {
+    if (s.status === "occupied" && s.vehicle?.model) {
+      const key = s.vehicle.variant ? `${s.vehicle.model} ${s.vehicle.variant}` : s.vehicle.model;
+      counts[key] = (counts[key] || 0) + 1;
+    }
+  });
+  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  modelCountsContainer.innerHTML =
+    entries.length === 0
+      ? `<div style="color:#6b7280;font-size:13px;">No cars yet.</div>`
+      : entries.map(
+          ([label, count]) =>
+            `<div class="stat-line"><span>${label}</span><strong>${count}</strong></div>`
+        ).join("");
+}
+function refreshRightPanel() {
+  recomputeStats();
+  renderModelCounts();
+  updateTireStats();
+}
 
-  if (variantFilter) {
-    variantFilter.addEventListener("change", applyHighlights);
+/* =============== DROPDOWN SYNC (toolbar + widget) =============== */
+function populateModelFilterFromStore() {
+  const options = ["— Select model —", ...getModelNames()];
+  modelFilter.innerHTML = options
+    .map((m, i) => `<option value="${i === 0 ? "" : m}">${m}</option>`)
+    .join("");
+  variantFilter.innerHTML = `<option value="">— Select variant —</option>`;
+  variantFilter.disabled = true;
+}
+function onModelsChanged() {
+  populateModelFilterFromStore();
+  const selected = modelFilter.value;
+  if (selected) {
+    const variants = getVariantsFor(selected);
+    variantFilter.innerHTML = `<option value="">— All variants —</option>${variants
+      .map((v) => `<option>${v}</option>`)
+      .join("")}`;
+    variantFilter.disabled = variants.length === 0;
   }
-
-  if (tireFilter) {
-    tireFilter.addEventListener("change", applyHighlights);
-  }
-
-  const clearHighlightsBtn = document.getElementById("clear-highlights-btn");
-  if (clearHighlightsBtn) {
-    clearHighlightsBtn.addEventListener("click", () => {
-      modelFilter.value = "";
-      if (variantFilter) {
-        variantFilter.value = "";
-        variantFilter.innerHTML = '<option value="">All Variants</option>';
-        variantFilter.disabled = true;
-      }
-      if (tireFilter) tireFilter.value = "";
-      applyHighlights();
-    });
+  if (!widget.classList.contains("hidden") && currentSpot) {
+    const wasEdit = widgetTitle.innerText.includes("Edit");
+    openWidget(currentSpot, wasEdit);
   }
 }
 
-/* =============== INITIALIZATION =============== */
-document.addEventListener("DOMContentLoaded", async () => {
-  // Create lock status indicator
-  createLockStatusIndicator();
-  
-  // Initialize layout
-  initLayout();
-  
-  // Load models and state
+/* =============== ICON (car.jpg) =============== */
+/* =============== INIT =============== */
+async function initRightToolbar() {
+  initInjectedControls();
+  initTireStatsSection();
+
+  // 1) Seed/load local models first
   loadModelStore();
+
+  // 2) Then remote load (merges with seeds and pushes back)
   await loadState();
-  
-  // Setup UI components
+
+  // 3) Build minimal quick-add line
   ensureQuickAddUI();
   populateQuickModelSelect();
   handleQuickAdd();
-  setupFilters();
-  setupVINSearch();
-  
-  // Initial render
+
+  // 4) Populate toolbar dropdowns
+  populateModelFilterFromStore();
+
+  // 5) Render and wire listeners
   layout.forEach(renderSpotColor);
   refreshRightPanel();
-  onModelsChanged();
 
-  // Event listeners
-  document.getElementById("zoom-in-btn").addEventListener("click", zoomIn);
-  document.getElementById("zoom-out-btn").addEventListener("click", zoomOut);
-  document.getElementById("widget-close-btn").addEventListener("click", closeWidget);
-  document.getElementById("save-btn").addEventListener("click", saveSpotData);
-
-  // Spot click handlers
-  layout.forEach((spot) => {
-    const el = spotElMap.get(spot.id);
-    if (el) {
-      el.addEventListener("click", () => openWidget(spot));
+  modelFilter.addEventListener("change", (e) => {
+    const selected = e.target.value;
+    if (selected) {
+      const variants = getVariantsFor(selected) || [];
+      variantFilter.innerHTML = `<option value="">— All variants —</option>${variants
+        .map((v) => `<option>${v}</option>`)
+        .join("")}`;
+      variantFilter.disabled = variants.length === 0;
+    } else {
+      variantFilter.innerHTML = `<option value="">— Select variant —</option>`;
+      variantFilter.disabled = true;
     }
+    applyHighlights();
   });
+  variantFilter.addEventListener("change", applyHighlights);
+  tireFilter.addEventListener("change", applyHighlights);
+
+  clearHighlightBtn.addEventListener("click", () => {
+    modelFilter.value = "";
+    variantFilter.value = "";
+    variantFilter.disabled = true;
+    tireFilter.value = "";
+    if (vinFlashTimeout) clearTimeout(vinFlashTimeout);
+    vinFlashSpotId = null;
+    layout.forEach(renderSpotColor);
+  });
+}
+
+initLayout(openWidget);
+
+document.getElementById("zoom-in-btn").addEventListener("click", zoomIn);
+document.getElementById("zoom-out-btn").addEventListener("click", zoomOut);
+document.getElementById("widget-close-btn").addEventListener("click", closeWidget);
+saveBtn.addEventListener("click", saveSpotData);
+
+window.addEventListener("load", () => {
+  initRightToolbar();
 });
 
+window.addEventListener('beforeunload', () => {
+  releaseLockIfHeld();
+});
