@@ -1,7 +1,6 @@
-import { remoteLoad, remoteSave, subscribe } from './remote.js';
+import { remoteLoad, remoteSave } from './remote.js';
 import { canvas, layout, spotElMap, initLayout, renderSpotColor } from './layout.js';
 
-subscribe(updateFromServer);
 
 function safeSet(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); }
@@ -140,19 +139,6 @@ function saveState() {
   // Try remote; also mirror local so offline reload shows latest saved state
   remoteSave(payload);
   try { safeSet(STORAGE_KEY, spots); } catch (e) { console.warn("local mirror failed:", e); }
-}
-
-function updateFromServer(state) {
-  const spots = state?.spots || {};
-  layout.forEach((s) => {
-    const saved = spots[s.id];
-    if (saved) {
-      s.status = saved.status || "available";
-      s.vehicle = saved.vehicle || null;
-    }
-  });
-  layout.forEach(renderSpotColor);
-  refreshRightPanel();
 }
 
 /* =========================================================
