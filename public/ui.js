@@ -125,7 +125,10 @@ async function loadState() {
     }
 
     // push merged list back to server once so everyone shares it (best-effort)
-    await remoteSave({ version: currentVersion, spots: remoteSpots, models: modelStore });
+    await remoteSave({
+      version: currentVersion,
+      data: { spots: remoteSpots, models: modelStore },
+    });
     // also mirror locally for fast offline reloads
     safeSet(STORAGE_KEY, remoteSpots);
     return;
@@ -156,7 +159,7 @@ async function saveState() {
     };
   });
 
-  const payload = { version: currentVersion, spots, models: modelStore };
+  const payload = { version: currentVersion, data: { spots, models: modelStore } };
 
   // Try remote; also mirror local so offline reload shows latest saved state
   const ok = await remoteSave(payload);

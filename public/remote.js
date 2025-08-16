@@ -61,12 +61,16 @@ export async function remoteSave(payload) {
   try {
     const {
       version = 0,
-      spots = {},
-      vehicles = {},
-      models = {},
-      stats = {},
+      updatedAt = null,
+      data: {
+        spots = {},
+        vehicles = {},
+        models = {},
+        stats = {},
+      } = {},
     } = payload || {};
-    const body = { version, data: { spots, vehicles, models, stats } };
+
+    const body = { version, updatedAt, data: { spots, vehicles, models, stats } };
     const r = await fetch(STATE_PATH, {
       method: "PUT",
       headers: { "Content-Type": "application/json", 'x-editor-id': getEditorId() },
