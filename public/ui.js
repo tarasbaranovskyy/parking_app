@@ -17,6 +17,22 @@ function safeGet(key) {
   }
 }
 
+function debounce(fn, delay) {
+  let t;
+  const debounced = (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, args), delay);
+  };
+  debounced.flush = () => {
+    if (t) {
+      clearTimeout(t);
+      t = null;
+      fn();
+    }
+  };
+  return debounced;
+}
+
 
 /* =============== ZOOM & DRAG =============== */
 let zoom = 1;
@@ -150,7 +166,7 @@ async function saveState() {
     spots[s.id] = {
       status: s.status,
       vehicle: s.vehicle ? { ...s.vehicle } : null,
-}
+    }
   });
 
   const payload = { spots, models: modelStore };
@@ -163,6 +179,9 @@ async function saveState() {
     console.warn("Remote save not available; using local only this time.");
   }
 }
+
+const debouncedSaveState = debounce(saveState, 500);
+window.addEventListener('beforeunload', () => debouncedSaveState.flush());
 
 function updateFromServer(state) {
   const spots = state?.spots || {};
@@ -202,7 +221,7 @@ function loadModelStore() {
 function saveModelStore() {
   try { safeSet(MODELS_KEY, modelStore); }
   catch (e) { console.warn("Failed to save models locally:", e); }
-  saveState(); // also persist to server
+  debouncedSaveState(); // also persist to server
 }
 function seedDefaultModels() {
   modelStore = {
@@ -491,7 +510,7 @@ function saveSpotData() {
     addVariant(currentSpot.vehicle.model, currentSpot.vehicle.variant);
   onModelsChanged();
 
-  saveState();
+  debouncedSaveState();
   refreshRightPanel();
   applyHighlights();
   releaseLockIfHeld();
@@ -503,7 +522,7 @@ function clearSpotData() {
   currentSpot.status = "available";
   renderSpotColor(currentSpot);
 
-  saveState();
+  debouncedSaveState();
   refreshRightPanel();
   applyHighlights();
   releaseLockIfHeld();
