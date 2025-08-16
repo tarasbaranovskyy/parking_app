@@ -18,16 +18,21 @@ function safeGet(key) {
 }
 
 function debounce(fn, delay) {
-  let t;
-  const debounced = (...args) => {
+  let t, lastArgs, lastThis;
+  const debounced = function (...args) {
+    lastArgs = args;
+    lastThis = this;
     clearTimeout(t);
-    t = setTimeout(() => fn.apply(this, args), delay);
+    t = setTimeout(() => {
+      t = null;
+      fn.apply(lastThis, lastArgs);
+    }, delay);
   };
   debounced.flush = () => {
     if (t) {
       clearTimeout(t);
       t = null;
-      fn();
+      fn.apply(lastThis, lastArgs);
     }
   };
   return debounced;
@@ -181,7 +186,14 @@ async function saveState() {
 }
 
 const debouncedSaveState = debounce(saveState, 500);
-window.addEventListener('beforeunload', () => debouncedSaveState.flush());
+function flushPendingSaves() {
+  debouncedSaveState.flush();
+}
+window.addEventListener('beforeunload', flushPendingSaves);
+window.addEventListener('pagehide', flushPendingSaves);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushPendingSaves();
+});
 
 function updateFromServer(state) {
   const spots = state?.spots || {};
