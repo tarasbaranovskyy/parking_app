@@ -42,7 +42,7 @@ test('GET returns default state', async () => {
   assert.deepEqual(res.body, {
     version: 0,
     updatedAt: null,
-    data: { spots: [], vehicles: [], models: [], stats: {} },
+    data: { spots: {}, models: {}, stats: {}, vehicles: [] },
   });
 });
 
@@ -50,7 +50,10 @@ test('PUT version mismatch returns 409', async () => {
   __reset();
   setEnv();
   const res = createRes();
-  await handler({ method: 'PUT', headers: { 'If-Match-Version': '1' }, body: {} }, res);
+  await handler(
+    { method: 'PUT', headers: { 'If-Match-Version': '1' }, body: { data: {} } },
+    res
+  );
   assert.equal(res.statusCode, 409);
   assert.deepEqual(res.body, { currentVersion: 0 });
 });
@@ -60,7 +63,7 @@ test('PUT increments version and persists', async () => {
   setEnv();
   const putRes = createRes();
   await handler(
-    { method: 'PUT', headers: { 'If-Match-Version': '0' }, body: { foo: 'bar' } },
+    { method: 'PUT', headers: { 'If-Match-Version': '0' }, body: { data: { foo: 'bar' } } },
     putRes
   );
   assert.equal(putRes.statusCode, 200);

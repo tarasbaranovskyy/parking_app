@@ -24,7 +24,7 @@ const KEY = 'parking:state';
 const DEFAULT_STATE = {
   version: 0,
   updatedAt: null,
-  data: { spots: [], vehicles: [], models: [], stats: {} },
+  data: { spots: {}, models: {}, stats: {}, vehicles: [] },
 };
 
 const ORIGIN_RE = /^https?:\/\/([^\/]+\.)?(vercel\.app|csb\.app|codesandbox\.io)$/;
@@ -61,11 +61,16 @@ export default async function handler(req, res) {
       if (Number(matchVersion) !== currentVersion) {
         return res.status(409).json({ currentVersion });
       }
-      let data;
+      let parsedBody;
       try {
-        data = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+        parsedBody =
+          typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
       } catch {
         return res.status(400).json({ error: 'Invalid JSON' });
+      }
+      const { data } = parsedBody || {};
+      if (data === undefined) {
+        return res.status(400).json({ error: 'Missing data' });
       }
       state = {
         version: currentVersion + 1,
