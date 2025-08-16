@@ -4,7 +4,7 @@ import cors from "cors";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import validateState from "./lib/validateState.js";
+import { validateEnvelope } from "./lib/validateState.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -93,10 +93,9 @@ if (!fs.existsSync(FILE)) {
     FILE,
     JSON.stringify(
       {
-        spots: {},
-        models: {},
-        version: 1,
-        updatedAt: new Date().toISOString(),
+        version: 0,
+        updatedAt: null,
+        data: { spots: {}, models: {}, stats: {}, vehicles: [] },
       },
       null,
       2
@@ -128,20 +127,25 @@ async function readState() {
     }
   }
   try {
-    return JSON.parse(fs.readFileSync(FILE, "utf8"));
-  } catch {
-    return {
-      spots: {},
-      models: {},
-      version: 1,
-      updatedAt: new Date().toISOString(),
-    };
-  }
+    const parsed = JSON.parse(fs.readFileSync(FILE, "utf8"));
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      if (!parsed.data && (parsed.spots || parsed.models)) {
+        const { version = 0, updatedAt = null, ...data } = parsed;
+        return { version, updatedAt, data };
+      }
+      return parsed;
+    }
+  } catch {}
+  return {
+    version: 0,
+    updatedAt: null,
+    data: { spots: {}, models: {}, stats: {}, vehicles: [] },
+  };
 }
 
 async function writeState(obj) {
   const state = {
-    ...obj,
+    data: obj.data,
     updatedAt: new Date().toISOString(),
     version: (obj.version || 0) + 1,
   };
@@ -197,13 +201,13 @@ async function putStateHandler(req, res) {
   const id = req.get("x-editor-id");
   
   // Validate state regardless of lock status
-  const err = validateState(req.body);
+  const err = validateEnvelope(req.body);
   if (err) {
     return res.status(400).json({ ok: false, error: err });
   }
 
-  const { spots, models, version } = req.body;
-  const state = await writeState({ spots, models, version });
+  const { data, version } = req.body;
+  const state = await writeState({ data, version });
   
   // Always broadcast updated state to all clients
   broadcastStateUpdate(state);
