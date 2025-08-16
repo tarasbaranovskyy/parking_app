@@ -102,19 +102,6 @@ export function remoteSave(data) {
 
 export function subscribe(onMessage) {
   if (!REMOTE_ENABLED) return;
-  try {
-    const es = new EventSource('/api/events');
-    es.onmessage = (e) => onMessage(JSON.parse(e.data));
-    es.onerror = () => {
-      es.close();
-      startPolling(onMessage);
-    };
-  } catch {
-    startPolling(onMessage);
-  }
-}
-
-function startPolling(onMessage) {
   let last;
   async function poll() {
     try {
