@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import handler, { __reset } from './state.js';
+import { validateEnvelope } from '../lib/validateState.js';
 
 function createRes() {
   const res = {
@@ -39,6 +40,7 @@ test('GET returns default state', async () => {
   const res = createRes();
   await handler({ method: 'GET', headers: {} }, res);
   assert.equal(res.statusCode, 200);
+  assert.ifError(validateEnvelope(res.body));
   assert.deepEqual(res.body, {
     version: 0,
     updatedAt: null,
@@ -63,16 +65,22 @@ test('PUT increments version and persists', async () => {
   setEnv();
   const putRes = createRes();
   await handler(
-    { method: 'PUT', headers: { 'If-Match-Version': '0' }, body: { data: { foo: 'bar' } } },
+    {
+      method: 'PUT',
+      headers: { 'If-Match-Version': '0' },
+      body: { data: { spots: {}, models: {} } },
+    },
     putRes
   );
   assert.equal(putRes.statusCode, 200);
+  assert.ifError(validateEnvelope(putRes.body));
   assert.equal(putRes.body.version, 1);
   assert.ok(putRes.body.updatedAt);
-  assert.deepEqual(putRes.body.data, { foo: 'bar' });
+  assert.deepEqual(putRes.body.data, { spots: {}, models: {} });
 
   const getRes = createRes();
   await handler({ method: 'GET' }, getRes);
+  assert.ifError(validateEnvelope(getRes.body));
   assert.equal(getRes.body.version, 1);
-  assert.deepEqual(getRes.body.data, { foo: 'bar' });
+  assert.deepEqual(getRes.body.data, { spots: {}, models: {} });
 });

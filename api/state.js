@@ -1,5 +1,7 @@
 // /api/state.js — Vercel Serverless Function using Vercel KV
 
+import { validateState } from '../lib/validateState.js';
+
 const memoryStore = new Map();
 export function __reset() {
   memoryStore.clear();
@@ -71,6 +73,10 @@ export default async function handler(req, res) {
       const { data } = parsedBody || {};
       if (data === undefined) {
         return res.status(400).json({ error: 'Missing data' });
+      }
+      const err = validateState(data);
+      if (err) {
+        return res.status(400).json({ error: err });
       }
       state = {
         version: currentVersion + 1,
