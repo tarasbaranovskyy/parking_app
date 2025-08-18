@@ -18,29 +18,13 @@ ALLOWED_ORIGINS="https://example.com,http://localhost:3000" npm start
 
 ### State Persistence
 
-The app can persist parking state using [Upstash Redis](https://upstash.com/) so that every browser sees the same data. Both the local server (`server.js`) and the serverless API consume the following environment variables:
+The app can persist parking state using [Vercel KV](https://vercel.com/docs/storage/vercel-kv) so that every browser sees the same data. Copy `.env.local.example` to `.env.local` and provide the following environment variables:
 
-- `UPSTASH_REDIS_REST_URL` – REST endpoint of your Upstash Redis database.
-- `UPSTASH_REDIS_REST_TOKEN` – authorization token for the database.
+- `KV_REST_API_URL` – REST endpoint of your Vercel KV database.
+- `KV_REST_API_TOKEN` – authorization token for the database.
+- `KV_URL` – connection string for direct access.
 
-You can define these values in a `.env` file:
-
-```env
-UPSTASH_REDIS_REST_URL=https://<region>.upstash.io
-UPSTASH_REDIS_REST_TOKEN=your-token-here
-```
-
-These variables enable the app to store and retrieve state from Redis, ensuring data survives across sessions and devices.
-
-### KV Environment Variables
-
-For additional state storage, copy `.env.local.example` to `.env.local` and set the following values:
-
-- `KV_REST_API_URL`
-- `KV_REST_API_TOKEN`
-- `KV_URL`
-
-Do not commit `.env.local` or any secrets to version control.
+These variables enable the app to store and retrieve state from Vercel KV, ensuring data survives across sessions and devices. Do not commit `.env.local` or any secrets to version control.
 
 ## How does this work?
 
